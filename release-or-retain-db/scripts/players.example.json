@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1,
+    "name": "Virat Kohli",
+    "team": "Royal Challengers Bengaluru",
+    "teamCode": "RCB",
+    "role": "Batsman",
+    "age": 37,
+    "type": "bat",
+    "imageFile": "virat-kohli.png",
+    "stats": {
+      "matches": 14,
+      "runs": 557,
+      "avg": "42.8",
+      "sr": "149.2",
+      "hs": "83*",
+      "fifties": 4
+    }
+  },
+  {
+    "id": 2,
+    "name": "Vaibhav Sooryavanshi",
+    "team": "Rajasthan Royals",
+    "teamCode": "RR",
+    "role": "Batsman",
+    "age": 15,
+    "type": "bat",
+    "imageFile": "vaibhav-sooryavanshi.png",
+    "stats": {
+      "matches": 13,
+      "runs": 579,
+      "avg": "44.5",
+      "sr": "236.3",
+      "hs": "103",
+      "hundreds": 1
+    }
+  },
+  {
+    "id": 4,
+    "name": "Bhuvneshwar Kumar",
+    "team": "Royal Challengers Bengaluru",
+    "teamCode": "RCB",
+    "role": "Bowler",
+    "age": 34,
+    "type": "bowl",
+    "imageFile": "bhuvneshwar-kumar.png",
+    "stats": {
+      "matches": 14,
+      "wickets": 24,
+      "avg": "18.2",
+      "economy": "7.8",
+      "bbi": "4/22"
+    }
+  },
+  {
+    "id": 11,
+    "name": "Hardik Pandya",
+    "team": "Mumbai Indians",
+    "teamCode": "MI",
+    "role": "All-rounder",
+    "age": 31,
+    "type": "all",
+    "imageFile": "hardik-pandya.png",
+    "stats": {
+      "matches": 14,
+      "runs": 312,
+      "avg": "34.7",
+      "sr": "158.4",
+      "hs": "68",
+      "wickets": 12,
+      "economy": "9.2"
+    }
+  }
+]

@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# Next.js
+release-or-retain/node_modules/
+release-or-retain/.next/
+release-or-retain/out/
+
+# Env / secrets
+.env
+.env*.local
+
+# OS
+.DS_Store
+*.pem
+
+# Logs
+npm-debug.log*
+*.log
+
+# TypeScript (generated)
+release-or-retain/next-env.d.ts
+
+# Scraper image cache (app copies live in release-or-retain/public/players/)
+data/images/
