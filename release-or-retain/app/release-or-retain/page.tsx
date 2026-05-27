@@ -1,24 +1,36 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { VoteResult } from "@/types/player";
 import { getPlayersByTeam } from "@/lib/players";
-import { TEAM_NAMES } from "@/lib/team-config";
+import { TEAM_CODES, TEAM_NAMES } from "@/lib/team-config";
 import {
   castVote,
-  completeSession,
+  completeTeamSession,
   ensureSession,
+  getAllTeamStatuses,
   getOrCreateSessionId,
-  resetSessionId,
+  getTeamStatus,
+  getTeamVotes,
+  TeamStatusInfo,
+  votesToResults,
 } from "@/lib/session";
 import SwipeGame from "@/components/release-or-retain/SwipeGame";
 import ResultsScreen from "@/components/release-or-retain/ResultsScreen";
 import TeamPicker from "@/components/release-or-retain/TeamPicker";
 
+const SQUAD_SIZES = Object.fromEntries(
+  TEAM_CODES.map((code) => [code, getPlayersByTeam(code).length])
+);
+
 export default function ReleaseOrRetainPage() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [results, setResults] = useState<VoteResult[] | null>(null);
+  const [initialResults, setInitialResults] = useState<VoteResult[]>([]);
+  const [teamStatuses, setTeamStatuses] = useState<Record<string, TeamStatusInfo>>({});
   const [sessionReady, setSessionReady] = useState(false);
+  const [loadingPicker, setLoadingPicker] = useState(true);
+  const [loadingTeam, setLoadingTeam] = useState(false);
   const sessionIdRef = useRef("");
 
   const players = useMemo(
@@ -26,29 +38,52 @@ export default function ReleaseOrRetainPage() {
     [selectedTeam]
   );
 
+  const refreshTeamStatuses = useCallback(async () => {
+    const sessionId = sessionIdRef.current || getOrCreateSessionId();
+    sessionIdRef.current = sessionId;
+    const statuses = await getAllTeamStatuses(
+      sessionId,
+      TEAM_CODES as string[],
+      SQUAD_SIZES
+    );
+    setTeamStatuses(statuses);
+    setLoadingPicker(false);
+  }, []);
+
   useEffect(() => {
-    if (!selectedTeam || results) {
-      setSessionReady(false);
+    void refreshTeamStatuses();
+  }, [refreshTeamStatuses]);
+
+  const handleTeamSelect = async (teamCode: string) => {
+    setLoadingTeam(true);
+    setSelectedTeam(teamCode);
+    setResults(null);
+    setInitialResults([]);
+    setSessionReady(false);
+
+    const sessionId = sessionIdRef.current || getOrCreateSessionId();
+    sessionIdRef.current = sessionId;
+
+    const squadSize = SQUAD_SIZES[teamCode] ?? 0;
+    const status = await getTeamStatus(sessionId, teamCode, squadSize);
+
+    if (status.status === "completed") {
+      const votes = await getTeamVotes(sessionId, teamCode);
+      setResults(votesToResults(votes, teamCode));
+      setLoadingTeam(false);
       return;
     }
 
-    let cancelled = false;
-    const sessionId = getOrCreateSessionId();
-    sessionIdRef.current = sessionId;
+    await ensureSession(sessionId, teamCode);
 
-    ensureSession(sessionId, selectedTeam)
-      .then(() => {
-        if (!cancelled) setSessionReady(true);
-      })
-      .catch((error) => {
-        console.error("Failed to initialize session:", error);
-        if (!cancelled) setSessionReady(true);
-      });
+    if (status.status === "in_progress") {
+      const votes = await getTeamVotes(sessionId, teamCode);
+      setInitialResults(votesToResults(votes, teamCode));
+    }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedTeam, results]);
+    setSessionReady(true);
+    setLoadingTeam(false);
+  };
 
   const handleVote = (playerId: number, decision: "retain" | "release") => {
     if (!selectedTeam || !sessionIdRef.current) return;
@@ -56,26 +91,19 @@ export default function ReleaseOrRetainPage() {
   };
 
   const handleComplete = (finalResults: VoteResult[]) => {
-    if (sessionIdRef.current) {
-      void completeSession(sessionIdRef.current);
+    if (sessionIdRef.current && selectedTeam) {
+      void completeTeamSession(sessionIdRef.current, selectedTeam);
     }
     setResults(finalResults);
+    void refreshTeamStatuses();
   };
 
-  const handleReset = () => {
-    resetSessionId();
-    sessionIdRef.current = "";
+  const handlePickAnotherTeam = () => {
     setResults(null);
+    setInitialResults([]);
     setSelectedTeam(null);
     setSessionReady(false);
-  };
-
-  const handleChangeTeam = () => {
-    resetSessionId();
-    sessionIdRef.current = "";
-    setResults(null);
-    setSelectedTeam(null);
-    setSessionReady(false);
+    void refreshTeamStatuses();
   };
 
   return (
@@ -98,14 +126,25 @@ export default function ReleaseOrRetainPage() {
 
       <div className="w-full max-w-sm px-4">
         {!selectedTeam ? (
-          <TeamPicker onSelect={setSelectedTeam} />
+          loadingPicker ? (
+            <div className="flex flex-col items-center justify-center pt-32 gap-3">
+              <div className="w-8 h-8 rounded-full border-2 border-neutral-300 border-t-neutral-600 animate-spin" />
+              <p className="text-sm text-neutral-400">Loading teams...</p>
+            </div>
+          ) : (
+            <TeamPicker
+              teamStatuses={teamStatuses}
+              onSelect={handleTeamSelect}
+              loading={loadingTeam}
+            />
+          )
         ) : results ? (
           <ResultsScreen
             results={results}
             teamCode={selectedTeam}
-            onPlayAgain={handleReset}
+            onPickAnotherTeam={handlePickAnotherTeam}
           />
-        ) : !sessionReady ? (
+        ) : loadingTeam || !sessionReady ? (
           <div className="flex flex-col items-center justify-center pt-32 gap-3">
             <div className="w-8 h-8 rounded-full border-2 border-neutral-300 border-t-neutral-600 animate-spin" />
             <p className="text-sm text-neutral-400">Loading squad...</p>
@@ -114,14 +153,15 @@ export default function ReleaseOrRetainPage() {
           <>
             <div className="flex justify-end mb-4">
               <button
-                onClick={handleChangeTeam}
+                onClick={handlePickAnotherTeam}
                 className="text-xs text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
               >
-                ← Change team
+                ← All teams
               </button>
             </div>
             <SwipeGame
               players={players}
+              initialResults={initialResults}
               onVote={handleVote}
               onComplete={handleComplete}
             />

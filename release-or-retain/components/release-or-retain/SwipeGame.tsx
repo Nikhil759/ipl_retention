@@ -14,15 +14,21 @@ interface DragState {
 
 interface SwipeGameProps {
   players: Player[];
+  initialResults?: VoteResult[];
   /** Called on each swipe — use this to write the vote to Supabase */
   onVote?: (playerId: number, decision: "retain" | "release") => void;
   /** Called when all players have been swiped */
   onComplete?: (results: VoteResult[]) => void;
 }
 
-export default function SwipeGame({ players, onVote, onComplete }: SwipeGameProps) {
-  const [currentIdx, setCurrentIdx]   = useState(0);
-  const [results, setResults]         = useState<VoteResult[]>([]);
+export default function SwipeGame({
+  players,
+  initialResults = [],
+  onVote,
+  onComplete,
+}: SwipeGameProps) {
+  const [currentIdx, setCurrentIdx]   = useState(initialResults.length);
+  const [results, setResults]         = useState<VoteResult[]>(initialResults);
   const [flying, setFlying]           = useState<SwipeDirection>(null);
   const [drag, setDrag]               = useState<DragState>({ x: 0, y: 0, active: false });
 

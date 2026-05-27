@@ -1,6 +1,20 @@
 import { createClient } from "@/lib/supabase/client";
+import { getPlayersByTeam } from "@/lib/players";
+import { VoteResult } from "@/types/player";
 
 const SESSION_KEY = "ror_session_id";
+
+export type TeamVoteStatus = "not_started" | "in_progress" | "completed";
+
+export interface TeamStatusInfo {
+  status: TeamVoteStatus;
+  voteCount: number;
+}
+
+export interface StoredVote {
+  player_id: number;
+  decision: "retain" | "release";
+}
 
 export function getOrCreateSessionId(): string {
   if (typeof window === "undefined") return "";
@@ -13,19 +27,14 @@ export function getOrCreateSessionId(): string {
   return sessionId;
 }
 
-export function resetSessionId(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(SESSION_KEY);
-}
-
 export async function ensureSession(
   sessionId: string,
   teamCode: string
 ): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase.from("sessions").upsert(
-    { id: sessionId, team_code: teamCode, completed_at: null },
-    { onConflict: "id" }
+    { id: sessionId, team_code: teamCode },
+    { onConflict: "id,team_code", ignoreDuplicates: true }
   );
   if (error) console.error("Session error:", error.message);
 }
@@ -44,13 +53,115 @@ export async function castVote(
   if (error) console.error("Vote error:", error.message);
 }
 
-export async function completeSession(sessionId: string): Promise<void> {
+export async function completeTeamSession(
+  sessionId: string,
+  teamCode: string
+): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase
     .from("sessions")
     .update({ completed_at: new Date().toISOString() })
-    .eq("id", sessionId);
+    .eq("id", sessionId)
+    .eq("team_code", teamCode);
   if (error) console.error("Complete session error:", error.message);
+}
+
+export async function getTeamVotes(
+  sessionId: string,
+  teamCode: string
+): Promise<StoredVote[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("votes")
+    .select("player_id, decision")
+    .eq("session_id", sessionId)
+    .eq("team_code", teamCode)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Get team votes error:", error.message);
+    return [];
+  }
+
+  return (data ?? []) as StoredVote[];
+}
+
+export function votesToResults(
+  votes: StoredVote[],
+  teamCode: string
+): VoteResult[] {
+  const players = getPlayersByTeam(teamCode);
+  const playerMap = new Map(players.map((player) => [player.id, player]));
+
+  return votes
+    .map((vote) => {
+      const player = playerMap.get(vote.player_id);
+      if (!player) return null;
+      return { player, decision: vote.decision };
+    })
+    .filter((result): result is VoteResult => result !== null);
+}
+
+export async function getTeamStatus(
+  sessionId: string,
+  teamCode: string,
+  squadSize: number
+): Promise<TeamStatusInfo> {
+  const supabase = createClient();
+
+  const [sessionResult, votesResult] = await Promise.all([
+    supabase
+      .from("sessions")
+      .select("completed_at")
+      .eq("id", sessionId)
+      .eq("team_code", teamCode)
+      .maybeSingle(),
+    supabase
+      .from("votes")
+      .select("player_id", { count: "exact", head: true })
+      .eq("session_id", sessionId)
+      .eq("team_code", teamCode),
+  ]);
+
+  if (sessionResult.error) {
+    console.error("Team status error:", sessionResult.error.message);
+  }
+  if (votesResult.error) {
+    console.error("Team vote count error:", votesResult.error.message);
+  }
+
+  const voteCount = votesResult.count ?? 0;
+
+  if (sessionResult.data?.completed_at) {
+    return { status: "completed", voteCount };
+  }
+  if (voteCount >= squadSize && squadSize > 0) {
+    return { status: "completed", voteCount };
+  }
+  if (voteCount > 0) {
+    return { status: "in_progress", voteCount };
+  }
+
+  return { status: "not_started", voteCount };
+}
+
+export async function getAllTeamStatuses(
+  sessionId: string,
+  teamCodes: string[],
+  squadSizes: Record<string, number>
+): Promise<Record<string, TeamStatusInfo>> {
+  const entries = await Promise.all(
+    teamCodes.map(async (teamCode) => {
+      const info = await getTeamStatus(
+        sessionId,
+        teamCode,
+        squadSizes[teamCode] ?? 0
+      );
+      return [teamCode, info] as const;
+    })
+  );
+
+  return Object.fromEntries(entries);
 }
 
 export async function getCommunityStats(
