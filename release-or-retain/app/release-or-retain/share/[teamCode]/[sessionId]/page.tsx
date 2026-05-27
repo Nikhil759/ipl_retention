@@ -5,6 +5,7 @@ import { useEffect, useState, use } from "react";
 import AppBackground from "@/components/release-or-retain/AppBackground";
 import ResultsScreen from "@/components/release-or-retain/ResultsScreen";
 import { BackToTeamsLink, SubpageHeader } from "@/components/release-or-retain/SubpageHeader";
+import { possessiveLabel } from "@/lib/profile";
 import { getSharedVerdict, isValidSessionId } from "@/lib/share";
 import { TEAM_CODES, TEAM_NAMES } from "@/lib/team-config";
 import { VoteResult } from "@/types/player";
@@ -16,6 +17,7 @@ interface PageProps {
 export default function SharedVerdictRoute({ params }: PageProps) {
   const { teamCode: rawTeam, sessionId } = use(params);
   const teamCode = rawTeam.toUpperCase();
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [results, setResults] = useState<VoteResult[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -31,10 +33,11 @@ export default function SharedVerdictRoute({ params }: PageProps) {
     }
 
     void getSharedVerdict(sessionId, teamCode).then((data) => {
-      if (!data || data.length === 0) {
+      if (!data) {
         setNotFound(true);
       } else {
-        setResults(data);
+        setResults(data.results);
+        setDisplayName(data.displayName);
       }
       setLoading(false);
     });
@@ -52,7 +55,7 @@ export default function SharedVerdictRoute({ params }: PageProps) {
     );
   }
 
-  if (notFound || !results) {
+  if (notFound || !results || !displayName) {
     return (
       <main className="min-h-dvh flex flex-col items-center overflow-x-hidden bg-transparent">
         <AppBackground />
@@ -77,7 +80,7 @@ export default function SharedVerdictRoute({ params }: PageProps) {
       <AppBackground />
 
       <SubpageHeader
-        title="Shared verdict"
+        title={`${possessiveLabel(displayName)} verdict`}
         subtitle="IPL 2026 · RELEASE OR RETAIN"
         accent={teamName}
         back={<BackToTeamsLink />}
@@ -89,6 +92,7 @@ export default function SharedVerdictRoute({ params }: PageProps) {
           teamCode={teamCode}
           sessionId={sessionId}
           viewer="guest"
+          sharerName={displayName}
         />
       </div>
     </main>

@@ -1,8 +1,16 @@
+import { DEFAULT_DISPLAY_NAME, possessiveLabel } from "@/lib/profile";
 import { TEAM_NAMES } from "@/lib/team-config";
 import { computePurseSummary } from "@/lib/format-salary";
 import { getTeamVotes, votesToResults } from "@/lib/session";
 import { createClient } from "@/lib/supabase/client";
 import { VoteResult } from "@/types/player";
+
+export type ShareOutcome = "copied" | "shared" | "error";
+
+export interface SharedVerdictData {
+  results: VoteResult[];
+  displayName: string;
+}
 
 export function buildVerdictShareUrl(sessionId: string, teamCode: string): string {
   const origin =
@@ -15,40 +23,85 @@ export function buildVerdictShareUrl(sessionId: string, teamCode: string): strin
 
 export function buildVerdictShareMessage(
   teamCode: string,
-  results: VoteResult[]
+  results: VoteResult[],
+  displayName: string = DEFAULT_DISPLAY_NAME
 ): string {
   const teamName = TEAM_NAMES[teamCode] ?? teamCode;
   const retained = results.filter((r) => r.decision === "retain").length;
   const released = results.filter((r) => r.decision === "release").length;
   const purse = computePurseSummary(results);
+  const who =
+    displayName === DEFAULT_DISPLAY_NAME
+      ? "My"
+      : `${possessiveLabel(displayName)}`;
 
-  return `My ${teamName} IPL 2026 verdict: ${retained} retained, ${released} released · ${purse.freedDisplay} auction purse freed. What's yours?`;
+  return `${who} ${teamName} IPL 2026 verdict: ${retained} retained, ${released} released · ${purse.freedDisplay} auction purse freed. What's yours?`;
+}
+
+export async function shareVerdict(
+  sessionId: string,
+  teamCode: string,
+  results: VoteResult[],
+  displayName: string
+): Promise<ShareOutcome> {
+  const url = buildVerdictShareUrl(sessionId, teamCode);
+  const text = buildVerdictShareMessage(teamCode, results, displayName);
+  const teamName = TEAM_NAMES[teamCode] ?? teamCode;
+  const title = `${possessiveLabel(displayName)} ${teamName} verdict · Release or Retain`;
+
+  try {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      await navigator.share({ title, text, url });
+      return "shared";
+    }
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      return "copied";
+    }
+    return "error";
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return "shared";
+    }
+    return "error";
+  }
 }
 
 export async function getSharedVerdict(
   sessionId: string,
   teamCode: string
-): Promise<VoteResult[] | null> {
+): Promise<SharedVerdictData | null> {
   const supabase = createClient();
 
-  const { data: session, error: sessionError } = await supabase
-    .from("sessions")
-    .select("completed_at")
-    .eq("id", sessionId)
-    .eq("team_code", teamCode)
-    .maybeSingle();
+  const [sessionResult, profileResult] = await Promise.all([
+    supabase
+      .from("sessions")
+      .select("completed_at")
+      .eq("id", sessionId)
+      .eq("team_code", teamCode)
+      .maybeSingle(),
+    supabase
+      .from("session_profiles")
+      .select("display_name")
+      .eq("session_id", sessionId)
+      .maybeSingle(),
+  ]);
 
-  if (sessionError) {
-    console.error("Shared verdict session error:", sessionError.message);
+  if (sessionResult.error) {
+    console.error("Shared verdict session error:", sessionResult.error.message);
     return null;
   }
 
-  if (!session?.completed_at) return null;
+  if (!sessionResult.data?.completed_at) return null;
 
   const votes = await getTeamVotes(sessionId, teamCode);
   if (votes.length === 0) return null;
 
-  return votesToResults(votes, teamCode);
+  const results = votesToResults(votes, teamCode);
+  const displayName =
+    profileResult.data?.display_name ?? DEFAULT_DISPLAY_NAME;
+
+  return { results, displayName };
 }
 
 const UUID_RE =

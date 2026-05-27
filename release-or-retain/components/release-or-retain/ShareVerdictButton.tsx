@@ -2,11 +2,9 @@
 
 import { useState } from "react";
 import { VoteResult } from "@/types/player";
-import {
-  buildVerdictShareMessage,
-  buildVerdictShareUrl,
-} from "@/lib/share";
-import { TEAM_NAMES } from "@/lib/team-config";
+import { shareVerdict } from "@/lib/share";
+import { getDisplayName, saveDisplayName } from "@/lib/profile";
+import DisplayNameModal from "./DisplayNameModal";
 
 interface ShareVerdictButtonProps {
   sessionId: string;
@@ -24,28 +22,31 @@ export default function ShareVerdictButton({
   const [status, setStatus] = useState<"idle" | "copied" | "shared" | "error">(
     "idle"
   );
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const handleShare = async () => {
-    const url = buildVerdictShareUrl(sessionId, teamCode);
-    const text = buildVerdictShareMessage(teamCode, results);
-    const teamName = TEAM_NAMES[teamCode] ?? teamCode;
-    const title = `My ${teamName} verdict · Release or Retain`;
-
-    try {
-      if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share({ title, text, url });
-        setStatus("shared");
-      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
-        await navigator.clipboard.writeText(`${text}\n${url}`);
-        setStatus("copied");
-      } else {
-        setStatus("error");
-        return;
-      }
-
+  const runShare = async (displayName: string) => {
+    const outcome = await shareVerdict(sessionId, teamCode, results, displayName);
+    setStatus(outcome);
+    if (outcome !== "error") {
       setTimeout(() => setStatus("idle"), 2500);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
+    }
+  };
+
+  const handleShareClick = async () => {
+    const existing = await getDisplayName(sessionId);
+    if (existing) {
+      await runShare(existing);
+    } else {
+      setModalOpen(true);
+    }
+  };
+
+  const handleNameConfirm = async (rawName: string) => {
+    setModalOpen(false);
+    try {
+      const displayName = await saveDisplayName(sessionId, rawName);
+      await runShare(displayName);
+    } catch {
       setStatus("error");
       setTimeout(() => setStatus("idle"), 2500);
     }
@@ -61,13 +62,21 @@ export default function ShareVerdictButton({
           : "Share my verdict";
 
   return (
-    <button
-      type="button"
-      onClick={() => void handleShare()}
-      className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-sky-500/40 bg-sky-500/15 text-sm font-medium text-sky-300 hover:bg-sky-500/25 hover:text-sky-200 transition-colors touch-manipulation ${className}`}
-    >
-      <span aria-hidden>{status === "idle" ? "↗" : "✓"}</span>
-      {label}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => void handleShareClick()}
+        className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-sky-500/40 bg-sky-500/15 text-sm font-medium text-sky-300 hover:bg-sky-500/25 hover:text-sky-200 transition-colors touch-manipulation ${className}`}
+      >
+        <span aria-hidden>{status === "idle" ? "↗" : "✓"}</span>
+        {label}
+      </button>
+
+      <DisplayNameModal
+        open={modalOpen}
+        onConfirm={(name) => void handleNameConfirm(name)}
+        onClose={() => setModalOpen(false)}
+      />
+    </>
   );
 }

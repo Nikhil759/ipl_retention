@@ -8,6 +8,7 @@ import { computePurseSummary } from "@/lib/format-salary";
 import { getCommunityStats } from "@/lib/session";
 import PlayerPhoto from "./PlayerPhoto";
 import ShareVerdictButton from "./ShareVerdictButton";
+import { verdictTitle } from "@/lib/profile";
 
 interface CommunityStat {
   retain_pct: number;
@@ -20,6 +21,7 @@ interface ResultsScreenProps {
   sessionId?: string;
   onPickAnotherTeam?: () => void;
   viewer?: "owner" | "guest";
+  sharerName?: string;
 }
 
 function communityLine(
@@ -52,6 +54,7 @@ export default function ResultsScreen({
   sessionId,
   onPickAnotherTeam,
   viewer = "owner",
+  sharerName,
 }: ResultsScreenProps) {
   const isGuest = viewer === "guest";
   const [communityStats, setCommunityStats] = useState<
@@ -140,7 +143,9 @@ export default function ResultsScreen({
       {/* Title */}
       <div className="text-center mb-6 md:mb-10">
         <h1 className="text-2xl md:text-3xl font-semibold text-white">
-          {isGuest ? "Their verdict" : "Your verdict"}
+          {isGuest && sharerName
+            ? verdictTitle(sharerName, "guest")
+            : verdictTitle("", "owner")}
         </h1>
         <p className="text-sm md:text-base text-gray-400 mt-1 md:mt-2">
           {teamName} · {results.length} players reviewed
