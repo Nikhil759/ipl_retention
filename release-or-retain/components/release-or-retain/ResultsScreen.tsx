@@ -151,31 +151,47 @@ export default function ResultsScreen({
           {teamName} · {results.length} players reviewed
         </p>
         {!isGuest && sessionId && (
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4 flex flex-wrap justify-center gap-2 md:gap-3">
             <ShareVerdictButton
               sessionId={sessionId}
               teamCode={teamCode}
               results={results}
             />
+            <Link
+              href={`/release-or-retain/consensus/${teamCode}`}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-sm font-medium text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 transition-colors touch-manipulation"
+            >
+              View fan consensus
+            </Link>
+          </div>
+        )}
+        {isGuest && (
+          <div className="mt-4 flex justify-center">
+            <Link
+              href={`/release-or-retain/consensus/${teamCode}`}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-sm font-medium text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 transition-colors touch-manipulation"
+            >
+              View fan consensus
+            </Link>
           </div>
         )}
       </div>
 
       {/* Summary pills */}
-      <div className="grid w-full gap-4 md:gap-6 mb-6 md:mb-8 md:grid-cols-2">
+      <div className="grid w-full gap-3 mb-5 md:mb-6 md:grid-cols-2">
         <button
           type="button"
           onClick={() => setActiveTab("retain")}
-          className={`rounded-xl py-4 md:py-5 text-center transition-all ${
+          className={`rounded-xl py-2.5 md:py-3 px-3 text-center transition-all ${
             activeTab === "retain"
               ? "bg-green-500/20 ring-2 ring-green-500/60"
               : "bg-green-500/10 hover:bg-green-500/15"
           }`}
         >
-          <p className="text-3xl md:text-4xl font-semibold text-green-400 tabular-nums">
+          <p className="text-2xl md:text-3xl font-semibold text-green-400 tabular-nums leading-none">
             {retained.length}
           </p>
-          <p className="text-xs text-green-500/80 tracking-widest mt-1 md:mt-2">
+          <p className="text-[10px] md:text-xs text-green-500/80 tracking-widest mt-1">
             RETAINED
           </p>
         </button>
@@ -184,16 +200,16 @@ export default function ResultsScreen({
           type="button"
           onClick={() => setActiveTab("release")}
           disabled={released.length === 0}
-          className={`rounded-xl py-4 md:py-5 text-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+          className={`rounded-xl py-2.5 md:py-3 px-3 text-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
             activeTab === "release"
               ? "bg-red-500/20 ring-2 ring-red-500/60"
               : "bg-red-500/10 hover:bg-red-500/15"
           }`}
         >
-          <p className="text-3xl md:text-4xl font-semibold text-red-400 tabular-nums">
+          <p className="text-2xl md:text-3xl font-semibold text-red-400 tabular-nums leading-none">
             {released.length}
           </p>
-          <p className="text-xs text-red-400/80 tracking-widest mt-1 md:mt-2">
+          <p className="text-[10px] md:text-xs text-red-400/80 tracking-widest mt-1">
             RELEASED
           </p>
         </button>
@@ -284,11 +300,11 @@ export default function ResultsScreen({
         )}
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 w-full sm:justify-center">
+      <div className="flex justify-center w-full">
         {isGuest ? (
           <Link
             href={`/release-or-retain?team=${teamCode}`}
-            className="w-full sm:flex-1 sm:max-w-xs py-3 md:py-3.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-sm md:text-base text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 transition-colors text-center"
+            className="w-full sm:max-w-xs py-3 md:py-3.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-sm md:text-base text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 transition-colors text-center"
           >
             Make your verdict →
           </Link>
@@ -296,17 +312,11 @@ export default function ResultsScreen({
           <button
             type="button"
             onClick={onPickAnotherTeam}
-            className="w-full sm:flex-1 sm:max-w-xs py-3 md:py-3.5 rounded-xl border border-white/20 bg-white/10 text-sm md:text-base text-gray-200 hover:bg-white/15 hover:text-white transition-colors"
+            className="w-full sm:max-w-xs py-3 md:py-3.5 rounded-xl border border-white/20 bg-white/10 text-sm md:text-base text-gray-200 hover:bg-white/15 hover:text-white transition-colors"
           >
             Pick another team →
           </button>
         )}
-        <Link
-          href={`/release-or-retain/consensus/${teamCode}`}
-          className="w-full sm:flex-1 sm:max-w-xs py-3 md:py-3.5 rounded-xl border border-white/20 bg-white/10 text-sm md:text-base text-gray-200 hover:bg-white/15 hover:text-white transition-colors text-center"
-        >
-          Fan consensus →
-        </Link>
       </div>
     </div>
   );
