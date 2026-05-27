@@ -339,7 +339,7 @@ export default function ResultsScreen({
               : "No players retained."}
           </p>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3 max-h-[420px] md:max-h-[480px] lg:max-h-[560px] overflow-y-auto pr-0.5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3 max-h-[490px] md:max-h-[480px] lg:max-h-[560px] overflow-y-auto pr-0.5">
             {activeList.map((result) => renderPlayerRow(result))}
           </div>
         )}
