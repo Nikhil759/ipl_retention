@@ -205,7 +205,7 @@ export default function ResultsScreen({
             </Link>
             {consensusUnlocked ? (
               <Link
-                href={`/release-or-retain/consensus/${teamCode}`}
+                href={`/release-or-retain/consensus/${teamCode}?ref=${sessionId ?? ""}&name=${encodeURIComponent(sharerName ?? "")}`}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 bg-white/10 text-sm font-medium text-gray-200 hover:bg-white/15 hover:text-white transition-colors touch-manipulation"
               >
                 See live fan vote

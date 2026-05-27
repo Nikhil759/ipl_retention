@@ -5,17 +5,42 @@ import { use } from "react";
 import AppBackground from "@/components/release-or-retain/AppBackground";
 import ConsensusRouteClient from "@/components/release-or-retain/ConsensusRouteClient";
 import { BackToTeamsLink, SubpageHeader } from "@/components/release-or-retain/SubpageHeader";
+import { possessiveLabel } from "@/lib/profile";
+import { isValidSessionId } from "@/lib/share";
 import { TEAM_CODES, TEAM_NAMES } from "@/lib/team-config";
+
+const backLinkClassName =
+  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/15 bg-white/5 text-xs font-medium text-gray-300 hover:bg-white/10 hover:text-white hover:border-white/25 transition-colors touch-manipulation";
 
 interface PageProps {
   params: Promise<{ teamCode: string }>;
+  searchParams: Promise<{ ref?: string; name?: string }>;
 }
 
-export default function TeamConsensusPage({ params }: PageProps) {
+export default function TeamConsensusPage({ params, searchParams }: PageProps) {
   const { teamCode: rawCode } = use(params);
+  const { ref: refSessionId, name: rawName } = use(searchParams);
   const teamCode = rawCode.toUpperCase();
   const isValid = (TEAM_CODES as string[]).includes(teamCode);
   const teamName = TEAM_NAMES[teamCode];
+
+  const hasRef = !!refSessionId && isValidSessionId(refSessionId);
+  const sharerName = rawName ? decodeURIComponent(rawName) : null;
+  const backLabel = hasRef && sharerName
+    ? `${possessiveLabel(sharerName)} picks`
+    : null;
+
+  const backLink = hasRef ? (
+    <Link
+      href={`/release-or-retain/share/${teamCode}/${refSessionId}`}
+      className={backLinkClassName}
+    >
+      <span aria-hidden>←</span>
+      {backLabel ?? "Back to picks"}
+    </Link>
+  ) : (
+    <BackToTeamsLink />
+  );
 
   if (!isValid) {
     return (
@@ -42,7 +67,7 @@ export default function TeamConsensusPage({ params }: PageProps) {
         title="Live fan vote"
         subtitle="IPL 2026 · UPDATES AS FANS VOTE"
         accent={teamName}
-        back={<BackToTeamsLink />}
+        back={backLink}
       />
 
       <div className="w-full max-w-sm md:max-w-3xl lg:max-w-4xl px-4 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
