@@ -31,12 +31,16 @@ export async function ensureSession(
   sessionId: string,
   teamCode: string
 ): Promise<void> {
-  const supabase = createClient();
-  const { error } = await supabase.from("sessions").upsert(
-    { id: sessionId, team_code: teamCode },
-    { onConflict: "id,team_code", ignoreDuplicates: true }
-  );
-  if (error) console.error("Session error:", error.message);
+  try {
+    const supabase = createClient();
+    const { error } = await supabase.from("sessions").upsert(
+      { id: sessionId, team_code: teamCode },
+      { onConflict: "id,team_code", ignoreDuplicates: true }
+    );
+    if (error) console.warn("Session error:", error.message);
+  } catch (error) {
+    console.warn("Failed to ensure session:", error);
+  }
 }
 
 export async function castVote(
@@ -45,25 +49,33 @@ export async function castVote(
   teamCode: string,
   decision: "retain" | "release"
 ): Promise<void> {
-  const supabase = createClient();
-  const { error } = await supabase.from("votes").upsert(
-    { session_id: sessionId, player_id: playerId, team_code: teamCode, decision },
-    { onConflict: "session_id,player_id" }
-  );
-  if (error) console.error("Vote error:", error.message);
+  try {
+    const supabase = createClient();
+    const { error } = await supabase.from("votes").upsert(
+      { session_id: sessionId, player_id: playerId, team_code: teamCode, decision },
+      { onConflict: "session_id,player_id" }
+    );
+    if (error) console.warn("Vote error:", error.message);
+  } catch (error) {
+    console.warn("Failed to cast vote:", error);
+  }
 }
 
 export async function completeTeamSession(
   sessionId: string,
   teamCode: string
 ): Promise<void> {
-  const supabase = createClient();
-  const { error } = await supabase
-    .from("sessions")
-    .update({ completed_at: new Date().toISOString() })
-    .eq("id", sessionId)
-    .eq("team_code", teamCode);
-  if (error) console.error("Complete session error:", error.message);
+  try {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("sessions")
+      .update({ completed_at: new Date().toISOString() })
+      .eq("id", sessionId)
+      .eq("team_code", teamCode);
+    if (error) console.warn("Complete session error:", error.message);
+  } catch (error) {
+    console.warn("Failed to complete session:", error);
+  }
 }
 
 export async function getTeamVotes(
@@ -107,42 +119,47 @@ export async function getTeamStatus(
   teamCode: string,
   squadSize: number
 ): Promise<TeamStatusInfo> {
-  const supabase = createClient();
+  try {
+    const supabase = createClient();
 
-  const [sessionResult, votesResult] = await Promise.all([
-    supabase
-      .from("sessions")
-      .select("completed_at")
-      .eq("id", sessionId)
-      .eq("team_code", teamCode)
-      .maybeSingle(),
-    supabase
-      .from("votes")
-      .select("player_id", { count: "exact", head: true })
-      .eq("session_id", sessionId)
-      .eq("team_code", teamCode),
-  ]);
+    const [sessionResult, votesResult] = await Promise.all([
+      supabase
+        .from("sessions")
+        .select("completed_at")
+        .eq("id", sessionId)
+        .eq("team_code", teamCode)
+        .maybeSingle(),
+      supabase
+        .from("votes")
+        .select("player_id", { count: "exact", head: true })
+        .eq("session_id", sessionId)
+        .eq("team_code", teamCode),
+    ]);
 
-  if (sessionResult.error) {
-    console.error("Team status error:", sessionResult.error.message);
-  }
-  if (votesResult.error) {
-    console.error("Team vote count error:", votesResult.error.message);
-  }
+    if (sessionResult.error) {
+      console.warn("Team status error:", sessionResult.error.message);
+    }
+    if (votesResult.error) {
+      console.warn("Team vote count error:", votesResult.error.message);
+    }
 
-  const voteCount = votesResult.count ?? 0;
+    const voteCount = votesResult.count ?? 0;
 
-  if (sessionResult.data?.completed_at) {
-    return { status: "completed", voteCount };
-  }
-  if (voteCount >= squadSize && squadSize > 0) {
-    return { status: "completed", voteCount };
-  }
-  if (voteCount > 0) {
-    return { status: "in_progress", voteCount };
-  }
+    if (sessionResult.data?.completed_at) {
+      return { status: "completed", voteCount };
+    }
+    if (voteCount >= squadSize && squadSize > 0) {
+      return { status: "completed", voteCount };
+    }
+    if (voteCount > 0) {
+      return { status: "in_progress", voteCount };
+    }
 
-  return { status: "not_started", voteCount };
+    return { status: "not_started", voteCount };
+  } catch (error) {
+    console.warn("Failed to get team status:", error);
+    return { status: "not_started", voteCount: 0 };
+  }
 }
 
 export async function getAllTeamStatuses(
