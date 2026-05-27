@@ -44,4 +44,10 @@ export const TEAM_NAMES: Record<string, string> = {
   SRH: "Sunrisers Hyderabad",
 };
 
-export const TEAM_CODES = Object.keys(TEAM_COLORS) as Array<keyof typeof TEAM_COLORS>;
+export const TEAM_CODES = (
+  Object.keys(TEAM_NAMES) as Array<keyof typeof TEAM_NAMES>
+).sort((a, b) => TEAM_NAMES[a].localeCompare(TEAM_NAMES[b]));
+
+export function teamLogoUrl(teamCode: string): string {
+  return `/teams/${teamCode}.png`;
+}

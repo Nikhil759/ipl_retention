@@ -108,19 +108,33 @@ export default function ReleaseOrRetainPage() {
 
   return (
     <main className="min-h-dvh bg-neutral-50 dark:bg-neutral-950 flex flex-col items-center overflow-x-hidden">
-      <header className="w-full py-5 px-6 flex items-center justify-center border-b border-neutral-200 dark:border-neutral-800 mb-6 pt-[max(1.25rem,env(safe-area-inset-top))]">
-        <div className="text-center">
-          <h1 className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
-            Release or Retain
-          </h1>
-          <p className="text-xs text-neutral-400 tracking-widest mt-0.5">
-            IPL 2026 · YOUR VERDICT
-          </p>
-          {selectedTeam && (
-            <p className="text-xs text-neutral-500 mt-1">
-              {TEAM_NAMES[selectedTeam] ?? selectedTeam}
-            </p>
+      <header className="w-full py-5 px-4 sm:px-6 border-b border-neutral-200 dark:border-neutral-800 mb-6 pt-[max(1.25rem,env(safe-area-inset-top))]">
+        <div className="relative flex items-center max-w-sm mx-auto">
+          {selectedTeam ? (
+            <button
+              type="button"
+              onClick={handlePickAnotherTeam}
+              className="absolute left-0 text-xs text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors py-1 touch-manipulation"
+            >
+              ← All teams
+            </button>
+          ) : (
+            <div className="absolute left-0 w-[72px]" aria-hidden />
           )}
+          <div className="flex-1 text-center px-[72px]">
+            <h1 className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+              Release or Retain
+            </h1>
+            <p className="text-xs text-neutral-400 tracking-widest mt-0.5">
+              IPL 2026 · YOUR VERDICT
+            </p>
+            {selectedTeam && (
+              <p className="text-xs text-neutral-500 mt-1">
+                {TEAM_NAMES[selectedTeam] ?? selectedTeam}
+              </p>
+            )}
+          </div>
+          <div className="absolute right-0 w-[72px]" aria-hidden />
         </div>
       </header>
 
@@ -150,22 +164,12 @@ export default function ReleaseOrRetainPage() {
             <p className="text-sm text-neutral-400">Loading squad...</p>
           </div>
         ) : (
-          <>
-            <div className="flex justify-end mb-4">
-              <button
-                onClick={handlePickAnotherTeam}
-                className="text-xs text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
-              >
-                ← All teams
-              </button>
-            </div>
-            <SwipeGame
-              players={players}
-              initialResults={initialResults}
-              onVote={handleVote}
-              onComplete={handleComplete}
-            />
-          </>
+          <SwipeGame
+            players={players}
+            initialResults={initialResults}
+            onVote={handleVote}
+            onComplete={handleComplete}
+          />
         )}
       </div>
     </main>

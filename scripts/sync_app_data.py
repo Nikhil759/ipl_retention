@@ -29,6 +29,24 @@ def main() -> None:
         shutil.copy2(image, dest)
         copied += 1
 
+    SCRAPED_TEAMS_JSON = ROOT / "data" / "teams.json"
+    SCRAPED_TEAM_LOGOS = ROOT / "data" / "team-logos"
+    APP_TEAMS_JSON = APP_DIR / "data" / "teams.json"
+    APP_TEAM_LOGOS = APP_DIR / "public" / "teams"
+
+    team_logos_copied = 0
+    if SCRAPED_TEAMS_JSON.exists():
+        APP_TEAMS_JSON.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(SCRAPED_TEAMS_JSON, APP_TEAMS_JSON)
+        print(f"Synced {APP_TEAMS_JSON}")
+
+    if SCRAPED_TEAM_LOGOS.exists():
+        APP_TEAM_LOGOS.mkdir(parents=True, exist_ok=True)
+        for logo in SCRAPED_TEAM_LOGOS.glob("*.png"):
+            shutil.copy2(logo, APP_TEAM_LOGOS / logo.name)
+            team_logos_copied += 1
+        print(f"Copied {team_logos_copied} team logos to {APP_TEAM_LOGOS}")
+
     print(f"Synced {APP_JSON}")
     print(f"Copied {copied} images to {APP_IMAGES}")
 

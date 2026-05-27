@@ -1,0 +1,88 @@
+{
+  "scraped_at": "2026-05-27T09:35:24.027222+00:00",
+  "source": "iplt20.com",
+  "team_count": 10,
+  "teams": {
+    "CSK": {
+      "code": "CSK",
+      "name": "Chennai Super Kings",
+      "slug": "chennai-super-kings",
+      "logo_url": "https://documents.iplt20.com/ipl/CSK/logos/Logooutline/CSKoutline.png",
+      "logo_local": "data/team-logos/CSK.png",
+      "logo_downloaded": true
+    },
+    "DC": {
+      "code": "DC",
+      "name": "Delhi Capitals",
+      "slug": "delhi-capitals",
+      "logo_url": "https://documents.iplt20.com/ipl/DC/Logos/LogoOutline/DCoutline.png",
+      "logo_local": "data/team-logos/DC.png",
+      "logo_downloaded": true
+    },
+    "GT": {
+      "code": "GT",
+      "name": "Gujarat Titans",
+      "slug": "gujarat-titans",
+      "logo_url": "https://documents.iplt20.com/ipl/GT/Logos/Logooutline/GToutline.png",
+      "logo_local": "data/team-logos/GT.png",
+      "logo_downloaded": true
+    },
+    "KKR": {
+      "code": "KKR",
+      "name": "Kolkata Knight Riders",
+      "slug": "kolkata-knight-riders",
+      "logo_url": "https://documents.iplt20.com/ipl/KKR/Logos/Logooutline/KKRoutline.png",
+      "logo_local": "data/team-logos/KKR.png",
+      "logo_downloaded": true
+    },
+    "LSG": {
+      "code": "LSG",
+      "name": "Lucknow Super Giants",
+      "slug": "lucknow-super-giants",
+      "logo_url": "https://documents.iplt20.com/ipl/LSG/Logos/Logooutline/LSGoutline.png",
+      "logo_local": "data/team-logos/LSG.png",
+      "logo_downloaded": true
+    },
+    "MI": {
+      "code": "MI",
+      "name": "Mumbai Indians",
+      "slug": "mumbai-indians",
+      "logo_url": "https://documents.iplt20.com/ipl/MI/Logos/Logooutline/MIoutline.png",
+      "logo_local": "data/team-logos/MI.png",
+      "logo_downloaded": true
+    },
+    "PBKS": {
+      "code": "PBKS",
+      "name": "Punjab Kings",
+      "slug": "punjab-kings",
+      "logo_url": "https://documents.iplt20.com/ipl/PBKS/Logos/Logooutline/PBKSoutline.png",
+      "logo_local": "data/team-logos/PBKS.png",
+      "logo_downloaded": true
+    },
+    "RR": {
+      "code": "RR",
+      "name": "Rajasthan Royals",
+      "slug": "rajasthan-royals",
+      "logo_url": "https://documents.iplt20.com/ipl/RR/Logos/RR_Logo.png",
+      "logo_local": "data/team-logos/RR.png",
+      "logo_downloaded": true
+    },
+    "RCB": {
+      "code": "RCB",
+      "name": "Royal Challengers Bengaluru",
+      "slug": "royal-challengers-bengaluru",
+      "logo_url": "https://documents.iplt20.com/ipl/RCB/Logos/Logooutline/RCBoutline.png",
+      "logo_local": "data/team-logos/RCB.png",
+      "logo_downloaded": true
+    },
+    "SRH": {
+      "code": "SRH",
+      "name": "Sunrisers Hyderabad",
+      "slug": "sunrisers-hyderabad",
+      "logo_url": "https://documents.iplt20.com/ipl/SRH/Logos/Logooutline/SRHoutline.png",
+      "logo_local": "data/team-logos/SRH.png",
+      "logo_downloaded": true
+    }
+  },
+  "errors": []
+}

@@ -1,8 +1,9 @@
 "use client";
 
-import { TEAM_COLORS, TEAM_CODES, TEAM_NAMES } from "@/lib/team-config";
+import { TEAM_CODES, TEAM_NAMES } from "@/lib/team-config";
 import { getPlayersByTeam } from "@/lib/players";
 import { TeamStatusInfo } from "@/lib/session";
+import TeamLogo from "./TeamLogo";
 
 interface TeamPickerProps {
   teamStatuses: Record<string, TeamStatusInfo>;
@@ -58,7 +59,6 @@ export default function TeamPicker({
 
       <div className="grid grid-cols-1 gap-3">
         {TEAM_CODES.map((code) => {
-          const colors = TEAM_COLORS[code];
           const squadSize = getPlayersByTeam(code).length;
           const teamStatus = teamStatuses[code] ?? {
             status: "not_started" as const,
@@ -72,15 +72,7 @@ export default function TeamPicker({
               disabled={loading}
               className="flex items-center gap-4 w-full p-4 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:shadow-md transition-shadow text-left disabled:opacity-60"
             >
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
-                style={{
-                  background: colors.primary,
-                  color: colors.text,
-                }}
-              >
-                {code}
-              </div>
+              <TeamLogo teamCode={code} size={48} />
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
                   {TEAM_NAMES[code]}

@@ -27,5 +27,6 @@ npm-debug.log*
 # TypeScript (generated)
 release-or-retain/next-env.d.ts
 
-# Scraper image cache (app copies live in release-or-retain/public/players/)
+# Scraper image cache (app copies live in release-or-retain/public/)
 data/images/
+data/team-logos/
