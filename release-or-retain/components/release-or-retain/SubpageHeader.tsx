@@ -27,9 +27,10 @@ interface SubpageHeaderProps {
   subtitle: string;
   accent?: string;
   back?: ReactNode;
+  badge?: ReactNode;
 }
 
-export function SubpageHeader({ title, subtitle, accent, back }: SubpageHeaderProps) {
+export function SubpageHeader({ title, subtitle, accent, back, badge }: SubpageHeaderProps) {
   return (
     <header className="w-full border-b border-amber-500/20 mb-4 md:mb-6 pt-[max(1rem,env(safe-area-inset-top))]">
       <div className="relative max-w-xs md:max-w-3xl lg:max-w-4xl mx-auto w-full px-4 sm:px-6 pb-3 md:pb-4 pt-2 md:pt-3">
@@ -45,6 +46,7 @@ export function SubpageHeader({ title, subtitle, accent, back }: SubpageHeaderPr
           <p className="text-[11px] md:text-xs text-gray-400 tracking-widest mt-1">
             {subtitle}
           </p>
+          {badge && <div className="mt-2 flex justify-center">{badge}</div>}
           {accent && (
             <p className="text-xs md:text-sm mt-1.5 font-medium" style={{ color: "#FFA500" }}>
               {accent}

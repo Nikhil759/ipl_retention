@@ -164,6 +164,33 @@ export async function getAllTeamStatuses(
   return Object.fromEntries(entries);
 }
 
+export function countCompletedTeams(
+  teamStatuses: Record<string, TeamStatusInfo>
+): number {
+  return Object.values(teamStatuses).filter((s) => s.status === "completed")
+    .length;
+}
+
+export function isSuperFan(
+  teamStatuses: Record<string, TeamStatusInfo>,
+  totalTeams: number
+): boolean {
+  return countCompletedTeams(teamStatuses) >= totalTeams && totalTeams > 0;
+}
+
+export function hasUnlockedConsensus(status: TeamStatusInfo): boolean {
+  return status.status === "completed";
+}
+
+export async function checkSuperFan(
+  sessionId: string,
+  teamCodes: string[],
+  squadSizes: Record<string, number>
+): Promise<boolean> {
+  const statuses = await getAllTeamStatuses(sessionId, teamCodes, squadSizes);
+  return isSuperFan(statuses, teamCodes.length);
+}
+
 export async function getCommunityStats(
   teamCode?: string
 ): Promise<Record<number, { retain_pct: number; total_votes: number }>> {

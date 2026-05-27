@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { TEAM_CODES, TEAM_NAMES, TEAM_COLORS } from "@/lib/team-config";
 import { getPlayersByTeam } from "@/lib/players";
-import { TeamStatusInfo } from "@/lib/session";
+import { TeamStatusInfo, hasUnlockedConsensus } from "@/lib/session";
 import TeamLogo from "./TeamLogo";
 import AppBackground from "./AppBackground";
+import VotingProgress from "./VotingProgress";
+import VoteToUnlockModal, { LockIcon } from "./VoteToUnlockModal";
 import { displayFont } from "@/lib/fonts";
 import { useEffect, useState } from "react";
 
@@ -62,6 +64,7 @@ export default function TeamPicker({
   loading = false,
 }: TeamPickerProps) {
   const [animatingIndices, setAnimatingIndices] = useState<Set<number>>(new Set());
+  const [lockedTeamModal, setLockedTeamModal] = useState<string | null>(null);
 
   useEffect(() => {
     TEAM_CODES.forEach((_, index) => {
@@ -97,7 +100,11 @@ export default function TeamPicker({
                 letterSpacing: "0.15em",
               }}
             >
-              IPL 2026 · YOUR VERDICT
+              IPL 2026 · YOUR PICKS
+            </p>
+            <p className="text-sm md:text-base text-gray-300 mt-4 md:mt-5 max-w-2xl leading-relaxed">
+              As IPL 2026 wraps up, help decide each team&apos;s future — swipe to
+              release or retain players ahead of next season&apos;s auction.
             </p>
           </div>
         </div>
@@ -110,6 +117,8 @@ export default function TeamPicker({
           <p className="text-sm md:text-base text-gray-400 mb-6 md:mb-8 max-w-2xl">
             One vote per squad — swipe through each team&apos;s 2026 players once.
           </p>
+
+          <VotingProgress teamStatuses={teamStatuses} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 md:gap-4">
             {TEAM_CODES.map((code, index) => {
@@ -197,46 +206,110 @@ export default function TeamPicker({
               Live fan vote
             </h2>
             <p className="text-sm md:text-base text-gray-400 mb-6 md:mb-8 max-w-2xl">
-              Live player-by-player retain / release splits — updates as more
-              fans vote.
+              Vote on a squad to unlock its live results — player-by-player retain
+              / release splits that update as more fans vote.
             </p>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 md:gap-3">
               {TEAM_CODES.map((code) => {
                 const teamColor = TEAM_COLORS[code];
-                return (
-                  <Link
-                    key={code}
-                    href={`/release-or-retain/consensus/${code}`}
-                    className="group flex items-center gap-2.5 p-3 md:p-3.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all"
-                    style={{
-                      backgroundImage: `linear-gradient(135deg, ${teamColor.primary}18 0%, transparent 70%)`,
-                    }}
-                  >
-                    <div
-                      className="flex-shrink-0 rounded-md overflow-hidden"
-                      style={{
-                        width: 32,
-                        height: 32,
-                        backgroundColor: teamColor.primary,
-                      }}
+                const teamStatus = teamStatuses[code];
+                const unlocked = hasUnlockedConsensus(teamStatus);
+
+                const tileClassName =
+                  "group flex items-center gap-2.5 p-3 md:p-3.5 rounded-lg border transition-all";
+                const tileStyle = {
+                  backgroundImage: `linear-gradient(135deg, ${teamColor.primary}18 0%, transparent 70%)`,
+                };
+
+                if (unlocked) {
+                  return (
+                    <Link
+                      key={code}
+                      href={`/release-or-retain/consensus/${code}`}
+                      className={`${tileClassName} border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20`}
+                      style={tileStyle}
                     >
-                      <TeamLogo teamCode={code} size={32} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs md:text-sm font-semibold text-white truncate">
-                        {code}
-                      </p>
-                      <p className="text-[10px] text-gray-500 truncate hidden sm:block">
-                        {TEAM_NAMES[code].split(" ").slice(-1)[0]}
-                      </p>
-                    </div>
-                  </Link>
+                      <ConsensusTeamTile teamCode={code} teamColor={teamColor.primary} />
+                    </Link>
+                  );
+                }
+
+                return (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => setLockedTeamModal(code)}
+                    className={`${tileClassName} border-amber-500/20 bg-white/[0.02] hover:bg-amber-500/[0.06] hover:border-amber-500/35 cursor-pointer text-left`}
+                    style={tileStyle}
+                    aria-label={`${TEAM_NAMES[code]} live fan vote locked — vote to unlock`}
+                  >
+                    <ConsensusTeamTile
+                      teamCode={code}
+                      teamColor={teamColor.primary}
+                      locked
+                    />
+                  </button>
                 );
               })}
             </div>
           </div>
         </div>
+      </div>
+
+      <VoteToUnlockModal
+        teamCode={lockedTeamModal}
+        onClose={() => setLockedTeamModal(null)}
+        onBegin={(teamCode) => {
+          setLockedTeamModal(null);
+          onSelect(teamCode);
+        }}
+      />
+    </>
+  );
+}
+
+function ConsensusTeamTile({
+  teamCode,
+  teamColor,
+  locked = false,
+}: {
+  teamCode: string;
+  teamColor: string;
+  locked?: boolean;
+}) {
+  return (
+    <>
+      <div
+        className="relative flex-shrink-0 rounded-md overflow-hidden"
+        style={{
+          width: 32,
+          height: 32,
+          backgroundColor: teamColor,
+        }}
+      >
+        <TeamLogo teamCode={teamCode} size={32} />
+        {locked && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/55">
+            <LockIcon className="w-3.5 h-3.5 text-amber-300/95" />
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p
+          className={`text-xs md:text-sm font-semibold truncate ${
+            locked ? "text-gray-300" : "text-white"
+          }`}
+        >
+          {teamCode}
+        </p>
+        <p
+          className={`text-[10px] truncate hidden sm:block ${
+            locked ? "text-amber-400/80 font-medium" : "text-gray-500"
+          }`}
+        >
+          {locked ? "Vote to unlock" : TEAM_NAMES[teamCode].split(" ").slice(-1)[0]}
+        </p>
       </div>
     </>
   );

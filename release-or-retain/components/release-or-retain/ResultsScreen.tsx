@@ -5,9 +5,16 @@ import Link from "next/link";
 import { VoteResult } from "@/types/player";
 import { TEAM_COLORS, TEAM_NAMES } from "@/lib/team-config";
 import { computePurseSummary } from "@/lib/format-salary";
-import { getCommunityStats } from "@/lib/session";
+import { getPlayersByTeam } from "@/lib/players";
+import {
+  getCommunityStats,
+  getOrCreateSessionId,
+  getTeamStatus,
+  hasUnlockedConsensus,
+} from "@/lib/session";
 import PlayerPhoto from "./PlayerPhoto";
 import ShareVerdictButton from "./ShareVerdictButton";
+import SuperFanBadge from "./SuperFanBadge";
 import { verdictTitle } from "@/lib/profile";
 
 interface CommunityStat {
@@ -22,6 +29,7 @@ interface ResultsScreenProps {
   onPickAnotherTeam?: () => void;
   viewer?: "owner" | "guest";
   sharerName?: string;
+  showSuperFan?: boolean;
 }
 
 function communityLine(
@@ -55,11 +63,13 @@ export default function ResultsScreen({
   onPickAnotherTeam,
   viewer = "owner",
   sharerName,
+  showSuperFan = false,
 }: ResultsScreenProps) {
   const isGuest = viewer === "guest";
   const [communityStats, setCommunityStats] = useState<
     Record<number, CommunityStat>
   >({});
+  const [consensusUnlocked, setConsensusUnlocked] = useState(!isGuest);
 
   const retained = results.filter((r) => r.decision === "retain");
   const released = results.filter((r) => r.decision === "release");
@@ -74,6 +84,19 @@ export default function ResultsScreen({
   useEffect(() => {
     void getCommunityStats(teamCode).then(setCommunityStats);
   }, [teamCode]);
+
+  useEffect(() => {
+    if (!isGuest) {
+      setConsensusUnlocked(true);
+      return;
+    }
+
+    const sessionId = getOrCreateSessionId();
+    const squadSize = getPlayersByTeam(teamCode).length;
+    void getTeamStatus(sessionId, teamCode, squadSize).then((status) => {
+      setConsensusUnlocked(hasUnlockedConsensus(status));
+    });
+  }, [isGuest, teamCode]);
 
   const activeList = activeTab === "retain" ? retained : released;
 
@@ -152,6 +175,11 @@ export default function ResultsScreen({
         <p className={`text-sm md:text-base text-gray-400 ${isGuest && sharerName ? "" : "mt-1 md:mt-2"}`}>
           {teamName} · {results.length} players reviewed
         </p>
+        {showSuperFan && (
+          <div className="mt-3 flex justify-center">
+            <SuperFanBadge />
+          </div>
+        )}
         {!isGuest && sessionId && (
           <div className="mt-4 flex flex-wrap justify-center gap-2 md:gap-3">
             <ShareVerdictButton
@@ -175,12 +203,21 @@ export default function ResultsScreen({
             >
               Make your picks
             </Link>
-            <Link
-              href={`/release-or-retain/consensus/${teamCode}`}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 bg-white/10 text-sm font-medium text-gray-200 hover:bg-white/15 hover:text-white transition-colors touch-manipulation"
-            >
-              See live fan vote
-            </Link>
+            {consensusUnlocked ? (
+              <Link
+                href={`/release-or-retain/consensus/${teamCode}`}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 bg-white/10 text-sm font-medium text-gray-200 hover:bg-white/15 hover:text-white transition-colors touch-manipulation"
+              >
+                See live fan vote
+              </Link>
+            ) : (
+              <span
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/[0.03] text-sm font-medium text-gray-500 cursor-not-allowed"
+                title="Vote on this squad to unlock live fan vote"
+              >
+                🔒 See live fan vote
+              </span>
+            )}
           </div>
         )}
       </div>

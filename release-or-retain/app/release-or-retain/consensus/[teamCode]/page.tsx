@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { use } from "react";
 import AppBackground from "@/components/release-or-retain/AppBackground";
-import FanConsensusScreen from "@/components/release-or-retain/FanConsensusScreen";
+import ConsensusRouteClient from "@/components/release-or-retain/ConsensusRouteClient";
 import { BackToTeamsLink, SubpageHeader } from "@/components/release-or-retain/SubpageHeader";
 import { TEAM_CODES, TEAM_NAMES } from "@/lib/team-config";
 
@@ -46,7 +46,7 @@ export default function TeamConsensusPage({ params }: PageProps) {
       />
 
       <div className="w-full max-w-sm md:max-w-3xl lg:max-w-4xl px-4 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <FanConsensusScreen teamCode={teamCode} />
+        <ConsensusRouteClient teamCode={teamCode} />
       </div>
     </main>
   );

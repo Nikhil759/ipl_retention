@@ -14,6 +14,7 @@ import {
   getOrCreateSessionId,
   getTeamStatus,
   getTeamVotes,
+  isSuperFan,
   TeamStatusInfo,
   votesToResults,
 } from "@/lib/session";
@@ -173,6 +174,7 @@ export default function ReleaseOrRetainClient() {
             teamCode={selectedTeam}
             sessionId={sessionIdRef.current}
             onPickAnotherTeam={handlePickAnotherTeam}
+            showSuperFan={isSuperFan(teamStatuses, TEAM_CODES.length)}
           />
         ) : loadingTeam || !sessionReady ? (
           <div className="flex flex-col items-center justify-center pt-24 md:pt-32 gap-3 min-h-[40dvh]">

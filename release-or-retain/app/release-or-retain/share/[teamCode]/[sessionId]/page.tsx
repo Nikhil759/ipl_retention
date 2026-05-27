@@ -4,11 +4,18 @@ import Link from "next/link";
 import { useEffect, useState, use } from "react";
 import AppBackground from "@/components/release-or-retain/AppBackground";
 import ResultsScreen from "@/components/release-or-retain/ResultsScreen";
+import SuperFanBadge from "@/components/release-or-retain/SuperFanBadge";
 import { BackToTeamsLink, SubpageHeader } from "@/components/release-or-retain/SubpageHeader";
+import { getPlayersByTeam } from "@/lib/players";
 import { possessiveLabel } from "@/lib/profile";
 import { getSharedVerdict, isValidSessionId } from "@/lib/share";
+import { checkSuperFan } from "@/lib/session";
 import { TEAM_CODES, TEAM_NAMES } from "@/lib/team-config";
 import { VoteResult } from "@/types/player";
+
+const SQUAD_SIZES = Object.fromEntries(
+  TEAM_CODES.map((code) => [code, getPlayersByTeam(code).length])
+);
 
 interface PageProps {
   params: Promise<{ teamCode: string; sessionId: string }>;
@@ -21,6 +28,7 @@ export default function SharedVerdictRoute({ params }: PageProps) {
   const [results, setResults] = useState<VoteResult[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [sharerSuperFan, setSharerSuperFan] = useState(false);
 
   const teamName = TEAM_NAMES[teamCode];
   const isValidTeam = (TEAM_CODES as string[]).includes(teamCode);
@@ -32,7 +40,11 @@ export default function SharedVerdictRoute({ params }: PageProps) {
       return;
     }
 
-    void getSharedVerdict(sessionId, teamCode).then((data) => {
+    void Promise.all([
+      getSharedVerdict(sessionId, teamCode),
+      checkSuperFan(sessionId, TEAM_CODES as string[], SQUAD_SIZES),
+    ]).then(([data, superFan]) => {
+      setSharerSuperFan(superFan);
       if (!data) {
         setNotFound(true);
       } else {
@@ -83,6 +95,7 @@ export default function SharedVerdictRoute({ params }: PageProps) {
         title={`${possessiveLabel(displayName)} picks`}
         subtitle="IPL 2026 · RELEASE OR RETAIN"
         accent={teamName}
+        badge={sharerSuperFan ? <SuperFanBadge /> : undefined}
         back={<BackToTeamsLink />}
       />
 
