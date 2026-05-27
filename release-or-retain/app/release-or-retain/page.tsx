@@ -108,9 +108,10 @@ export default function ReleaseOrRetainPage() {
 
   return (
     <main className="min-h-dvh bg-neutral-50 dark:bg-neutral-950 flex flex-col items-center overflow-x-hidden">
-      <header className="w-full py-5 px-4 sm:px-6 border-b border-neutral-200 dark:border-neutral-800 mb-6 pt-[max(1.25rem,env(safe-area-inset-top))]">
-        <div className="relative flex items-center max-w-sm mx-auto">
-          {selectedTeam ? (
+      {/* Header only shown when viewing team details or results */}
+      {selectedTeam && (
+        <header className="w-full py-5 px-4 sm:px-6 border-b border-neutral-200 dark:border-neutral-800 mb-6 pt-[max(1.25rem,env(safe-area-inset-top))]">
+          <div className="relative flex items-center max-w-sm mx-auto">
             <button
               type="button"
               onClick={handlePickAnotherTeam}
@@ -118,25 +119,21 @@ export default function ReleaseOrRetainPage() {
             >
               ← All teams
             </button>
-          ) : (
-            <div className="absolute left-0 w-[72px]" aria-hidden />
-          )}
-          <div className="flex-1 text-center px-[72px]">
-            <h1 className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
-              Release or Retain
-            </h1>
-            <p className="text-xs text-neutral-400 tracking-widest mt-0.5">
-              IPL 2026 · YOUR VERDICT
-            </p>
-            {selectedTeam && (
+            <div className="flex-1 text-center px-[72px]">
+              <h1 className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+                Release or Retain
+              </h1>
+              <p className="text-xs text-neutral-400 tracking-widest mt-0.5">
+                IPL 2026 · YOUR VERDICT
+              </p>
               <p className="text-xs text-neutral-500 mt-1">
                 {TEAM_NAMES[selectedTeam] ?? selectedTeam}
               </p>
-            )}
+            </div>
+            <div className="absolute right-0 w-[72px]" aria-hidden />
           </div>
-          <div className="absolute right-0 w-[72px]" aria-hidden />
-        </div>
-      </header>
+        </header>
+      )}
 
       <div className="w-full max-w-sm px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {!selectedTeam ? (
