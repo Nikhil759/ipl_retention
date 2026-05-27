@@ -107,8 +107,8 @@ export default function ReleaseOrRetainPage() {
   };
 
   return (
-    <main className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex flex-col items-center">
-      <header className="w-full py-5 px-6 flex items-center justify-center border-b border-neutral-200 dark:border-neutral-800 mb-6">
+    <main className="min-h-dvh bg-neutral-50 dark:bg-neutral-950 flex flex-col items-center overflow-x-hidden">
+      <header className="w-full py-5 px-6 flex items-center justify-center border-b border-neutral-200 dark:border-neutral-800 mb-6 pt-[max(1.25rem,env(safe-area-inset-top))]">
         <div className="text-center">
           <h1 className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
             Release or Retain
@@ -124,7 +124,7 @@ export default function ReleaseOrRetainPage() {
         </div>
       </header>
 
-      <div className="w-full max-w-sm px-4">
+      <div className="w-full max-w-sm px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {!selectedTeam ? (
           loadingPicker ? (
             <div className="flex flex-col items-center justify-center pt-32 gap-3">

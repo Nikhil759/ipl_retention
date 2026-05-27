@@ -2,7 +2,12 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Player, VoteResult, SwipeDirection } from "@/types/player";
-import { SWIPE_THRESHOLD } from "@/lib/team-config";
+import {
+  CARD_ALLROUNDER_HEIGHT,
+  CARD_BASE_HEIGHT,
+  CARD_BASE_WIDTH,
+  getSwipeThreshold,
+} from "@/lib/team-config";
 import { preloadPlayerImage } from "@/lib/preload-image";
 import PlayerCard from "./PlayerCard";
 
@@ -27,17 +32,38 @@ export default function SwipeGame({
   onVote,
   onComplete,
 }: SwipeGameProps) {
-  const [currentIdx, setCurrentIdx]   = useState(initialResults.length);
-  const [results, setResults]         = useState<VoteResult[]>(initialResults);
-  const [flying, setFlying]           = useState<SwipeDirection>(null);
-  const [drag, setDrag]               = useState<DragState>({ x: 0, y: 0, active: false });
+  const [currentIdx, setCurrentIdx] = useState(initialResults.length);
+  const [results, setResults] = useState<VoteResult[]>(initialResults);
+  const [flying, setFlying] = useState<SwipeDirection>(null);
+  const [drag, setDrag] = useState<DragState>({ x: 0, y: 0, active: false });
+  const [cardWidth, setCardWidth] = useState(CARD_BASE_WIDTH);
 
-  const startPos   = useRef({ x: 0, y: 0 });
-  const cardRef    = useRef<HTMLDivElement>(null);
+  const startPos = useRef({ x: 0, y: 0 });
+  const dragRef = useRef<DragState>({ x: 0, y: 0, active: false });
+  const stackRef = useRef<HTMLDivElement>(null);
+  const flyingRef = useRef(false);
 
   const currentPlayer = players[currentIdx];
-  const nextPlayer    = players[currentIdx + 1];
+  const nextPlayer = players[currentIdx + 1];
   const nextNextPlayer = players[currentIdx + 2];
+
+  useEffect(() => {
+    const el = stackRef.current;
+    if (!el) return;
+
+    const updateLayout = () => {
+      setCardWidth(el.getBoundingClientRect().width);
+    };
+
+    updateLayout();
+    const observer = new ResizeObserver(updateLayout);
+    observer.observe(el);
+    window.addEventListener("resize", updateLayout);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateLayout);
+    };
+  }, []);
 
   useEffect(() => {
     if (nextPlayer?.hasValidImage) {
@@ -51,17 +77,21 @@ export default function SwipeGame({
   const retained = results.filter((r) => r.decision === "retain").length;
   const released = results.filter((r) => r.decision === "release").length;
 
+  const resetDrag = useCallback(() => {
+    dragRef.current = { x: 0, y: 0, active: false };
+    setDrag({ x: 0, y: 0, active: false });
+  }, []);
+
   // ── swipe logic ──────────────────────────────────────────────────────────
 
   const doDecision = useCallback(
-    async (decision: "retain" | "release") => {
-      if (flying) return; // prevent double-fire
+    (decision: "retain" | "release") => {
+      if (flyingRef.current) return;
+      flyingRef.current = true;
       setFlying(decision);
 
-      // optimistically record the result
       const newResults = [...results, { player: currentPlayer, decision }];
 
-      // Non-blocking: swipe animation should not wait on Supabase
       if (onVote) {
         void onVote(currentPlayer.id, decision);
       }
@@ -69,75 +99,91 @@ export default function SwipeGame({
       setTimeout(() => {
         setResults(newResults);
         setCurrentIdx((i) => i + 1);
-        setDrag({ x: 0, y: 0, active: false });
+        resetDrag();
         setFlying(null);
+        flyingRef.current = false;
 
         if (currentIdx + 1 >= players.length) {
           onComplete?.(newResults);
         }
       }, 380);
     },
-    [flying, results, currentPlayer, currentIdx, players.length, onVote, onComplete]
+    [results, currentPlayer, currentIdx, players.length, onVote, onComplete, resetDrag]
   );
 
-  // ── drag handlers ─────────────────────────────────────────────────────────
+  // ── drag handlers (refs avoid stale state on fast mobile touch sequences) ──
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (flyingRef.current) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
     startPos.current = { x: e.clientX, y: e.clientY };
+    dragRef.current = { x: 0, y: 0, active: true };
     setDrag({ x: 0, y: 0, active: true });
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!drag.active) return;
-    setDrag({
-      x: e.clientX - startPos.current.x,
-      y: e.clientY - startPos.current.y,
-      active: true,
-    });
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current.active) return;
+    const x = e.clientX - startPos.current.x;
+    const y = e.clientY - startPos.current.y;
+    dragRef.current = { x, y, active: true };
+    setDrag({ x, y, active: true });
   };
 
   const handlePointerUp = () => {
-    if (!drag.active) return;
-    if (drag.x > SWIPE_THRESHOLD) {
+    const { active, x } = dragRef.current;
+    if (!active) return;
+
+    dragRef.current.active = false;
+    const threshold = getSwipeThreshold();
+
+    if (x > threshold) {
       doDecision("retain");
-    } else if (drag.x < -SWIPE_THRESHOLD) {
+    } else if (x < -threshold) {
       doDecision("release");
     } else {
-      // snap back
-      setDrag({ x: 0, y: 0, active: false });
+      resetDrag();
     }
   };
 
   // ── derived visual values ─────────────────────────────────────────────────
 
-  const rotation      = drag.x / 18;
+  const rotation = drag.x / 18;
   const retainOpacity = Math.min(Math.max(drag.x / 80, 0), 1);
   const releaseOpacity = Math.min(Math.max(-drag.x / 80, 0), 1);
 
+  const flyDistance = Math.max(cardWidth * 2.5, 320);
+
   let cardTransform = `translateX(${drag.x}px) translateY(${drag.y * 0.2}px) rotate(${rotation}deg)`;
-  let cardTransition = drag.active ? "none" : "transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)";
+  let cardTransition = drag.active
+    ? "none"
+    : "transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)";
 
   if (flying === "retain") {
-    cardTransform = "translateX(700px) rotate(28deg)";
+    cardTransform = `translateX(${flyDistance}px) rotate(28deg)`;
     cardTransition = "transform 0.38s cubic-bezier(0.55,0.055,0.675,0.19)";
   } else if (flying === "release") {
-    cardTransform = "translateX(-700px) rotate(-28deg)";
+    cardTransform = `translateX(-${flyDistance}px) rotate(-28deg)`;
     cardTransition = "transform 0.38s cubic-bezier(0.55,0.055,0.675,0.19)";
   }
 
   // ── render ────────────────────────────────────────────────────────────────
 
   const isAllRounder = currentPlayer?.type === "all";
-  const cardHeight = isAllRounder ? 560 : 490;
+  const baseHeight = isAllRounder ? CARD_ALLROUNDER_HEIGHT : CARD_BASE_HEIGHT;
+  const widthScale = cardWidth / CARD_BASE_WIDTH;
+  const maxHeight =
+    typeof window !== "undefined" ? window.innerHeight - 220 : baseHeight;
+  const heightScale = maxHeight / baseHeight;
+  const cardScale = Math.min(widthScale, heightScale, 1);
+  const cardHeight = baseHeight * cardScale;
 
-  if (!currentPlayer) return null; // SwipeGame is done — parent should show ResultsScreen
+  if (!currentPlayer) return null;
 
   return (
-    <div className="flex flex-col items-center w-full">
+    <div className="flex flex-col items-center w-full pb-2">
 
       {/* ── Header counters ── */}
-      <div className="flex justify-between items-center w-full max-w-xs mb-5 px-1">
+      <div className="flex justify-between items-center w-full max-w-xs mb-4 px-1">
         <div className="text-center">
           <p className="text-2xl font-semibold text-red-500 leading-none">{released}</p>
           <p className="text-[10px] text-neutral-400 tracking-widest mt-1">RELEASED</p>
@@ -157,9 +203,11 @@ export default function SwipeGame({
       </div>
 
       {/* ── Card stack ── */}
-      <div className="relative" style={{ width: 340, height: cardHeight }}>
-
-        {/* Third card (deepest) */}
+      <div
+        ref={stackRef}
+        className="relative w-full max-w-[340px]"
+        style={{ height: cardHeight }}
+      >
         {nextNextPlayer && (
           <div
             className="absolute inset-0 rounded-[20px] border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
@@ -167,7 +215,6 @@ export default function SwipeGame({
           />
         )}
 
-        {/* Second card */}
         {nextPlayer && (
           <div
             className="absolute inset-0 rounded-[20px] border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900"
@@ -175,48 +222,60 @@ export default function SwipeGame({
           />
         )}
 
-        {/* Active card */}
         <div
-          ref={cardRef}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          className="absolute inset-0 rounded-[20px] border border-neutral-200 dark:border-neutral-700 shadow-md cursor-grab active:cursor-grabbing"
+          className="absolute inset-0 overflow-hidden rounded-[20px] border border-neutral-200 dark:border-neutral-700 shadow-md cursor-grab active:cursor-grabbing touch-none select-none"
           style={{
             zIndex: 2,
             transform: cardTransform,
             transition: cardTransition,
             willChange: "transform",
+            touchAction: "none",
           }}
         >
-          <PlayerCard
-            player={currentPlayer}
-            retainOpacity={retainOpacity}
-            releaseOpacity={releaseOpacity}
-            priority
-          />
+          <div
+            className="absolute top-0"
+            style={{
+              width: CARD_BASE_WIDTH,
+              height: baseHeight,
+              left: (cardWidth - CARD_BASE_WIDTH * cardScale) / 2,
+              transform: `scale(${cardScale})`,
+              transformOrigin: "top left",
+            }}
+          >
+            <PlayerCard
+              player={currentPlayer}
+              retainOpacity={retainOpacity}
+              releaseOpacity={releaseOpacity}
+              priority
+            />
+          </div>
         </div>
       </div>
 
       {/* ── Action buttons ── */}
-      <div className="flex items-center gap-8 mt-6">
+      <div className="flex items-center gap-6 sm:gap-8 mt-5 w-full max-w-xs justify-center">
         <button
+          type="button"
           onClick={() => doDecision("release")}
           aria-label="Release"
-          className="w-14 h-14 rounded-full border-2 border-red-400 text-red-500 hover:bg-red-50 dark:hover:bg-red-950 active:scale-95 transition-all flex items-center justify-center text-2xl"
+          className="w-14 h-14 rounded-full border-2 border-red-400 text-red-500 hover:bg-red-50 dark:hover:bg-red-950 active:scale-95 transition-all flex items-center justify-center text-2xl touch-manipulation"
         >
           ✕
         </button>
 
-        <p className="text-[11px] text-neutral-400 text-center leading-relaxed tracking-wide">
+        <p className="text-[11px] text-neutral-400 text-center leading-relaxed tracking-wide shrink min-w-0">
           ← release · retain →
         </p>
 
         <button
+          type="button"
           onClick={() => doDecision("retain")}
           aria-label="Retain"
-          className="w-14 h-14 rounded-full border-2 border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-950 active:scale-95 transition-all flex items-center justify-center text-2xl"
+          className="w-14 h-14 rounded-full border-2 border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-950 active:scale-95 transition-all flex items-center justify-center text-2xl touch-manipulation"
         >
           ✓
         </button>

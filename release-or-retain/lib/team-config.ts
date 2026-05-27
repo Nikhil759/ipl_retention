@@ -17,7 +17,19 @@ export const TEAM_COLORS: Record<string, TeamConfig> = {
   LSG: { primary: "#A72B2A", secondary: "#FFD700", text: "#ffffff" },
 };
 
-export const SWIPE_THRESHOLD = 100; // px before a swipe is registered
+export const SWIPE_THRESHOLD = 100; // px before a swipe is registered (desktop)
+export const SWIPE_THRESHOLD_MOBILE = 65; // lower threshold for touch devices
+
+export function getSwipeThreshold(): number {
+  if (typeof window === "undefined") return SWIPE_THRESHOLD;
+  return window.matchMedia("(pointer: coarse)").matches
+    ? SWIPE_THRESHOLD_MOBILE
+    : SWIPE_THRESHOLD;
+}
+
+export const CARD_BASE_WIDTH = 340;
+export const CARD_BASE_HEIGHT = 490;
+export const CARD_ALLROUNDER_HEIGHT = 560;
 
 export const TEAM_NAMES: Record<string, string> = {
   CSK: "Chennai Super Kings",
