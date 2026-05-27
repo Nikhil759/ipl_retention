@@ -267,9 +267,15 @@ export default function SwipeGame({
           ✕
         </button>
 
-        <p className="text-[11px] text-neutral-400 text-center leading-relaxed tracking-wide shrink min-w-0">
-          ← release · retain →
-        </p>
+        <div className="text-center shrink min-w-0 leading-snug">
+          <p className="text-[11px] text-red-500/90 dark:text-red-400 font-medium">
+            Swipe ← release
+          </p>
+          <p className="text-[11px] text-green-700/90 dark:text-green-400 font-medium mt-0.5">
+            Swipe → retain
+          </p>
+          <p className="text-[10px] text-neutral-400 mt-1">or tap ✕ / ✓</p>
+        </div>
 
         <button
           type="button"

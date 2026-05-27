@@ -141,12 +141,12 @@ export default function PlayerCard({
           }}
         />
 
-        {/* RETAIN stamp */}
+        {/* RETAIN stamp — left side (visible when swiping right) */}
         <div
-          className="absolute top-5 right-4 px-3 py-1.5 rounded-lg border-2 border-white font-semibold text-lg text-white tracking-wide"
+          className="absolute top-5 left-4 px-3 py-1.5 rounded-lg border-2 border-white font-semibold text-lg text-white tracking-wide"
           style={{
             background: "#3B6D11",
-            transform: "rotate(15deg)",
+            transform: "rotate(-15deg)",
             opacity: retainOpacity,
             transition: "opacity 0.08s",
           }}
@@ -154,12 +154,12 @@ export default function PlayerCard({
           RETAIN ✓
         </div>
 
-        {/* RELEASE stamp */}
+        {/* RELEASE stamp — right side (visible when swiping left) */}
         <div
-          className="absolute top-5 left-4 px-3 py-1.5 rounded-lg border-2 border-white font-semibold text-lg text-white tracking-wide"
+          className="absolute top-5 right-4 px-3 py-1.5 rounded-lg border-2 border-white font-semibold text-lg text-white tracking-wide"
           style={{
             background: "#A32D2D",
-            transform: "rotate(-15deg)",
+            transform: "rotate(15deg)",
             opacity: releaseOpacity,
             transition: "opacity 0.08s",
           }}
