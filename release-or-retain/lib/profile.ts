@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 
-export const DEFAULT_DISPLAY_NAME = "A fan";
+export const DEFAULT_DISPLAY_NAME = "Anonymous fan";
 export const MAX_DISPLAY_NAME_LENGTH = 24;
 
 const DISPLAY_NAME_CACHE_KEY = "ror_display_name_cache";
