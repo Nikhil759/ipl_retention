@@ -38,16 +38,55 @@ export function buildVerdictShareMessage(
   return `${who} ${teamName} IPL 2026 picks: ${retained} retained, ${released} released · ${purse.freedDisplay} auction purse freed. What would you pick?`;
 }
 
+export function buildVerdictSharePayload(
+  sessionId: string,
+  teamCode: string,
+  results: VoteResult[],
+  displayName: string
+): { url: string; text: string; title: string } {
+  const url = buildVerdictShareUrl(sessionId, teamCode);
+  const text = buildVerdictShareMessage(teamCode, results, displayName);
+  const teamName = TEAM_NAMES[teamCode] ?? teamCode;
+  const title = `${possessiveLabel(displayName)} ${teamName} picks · Release or Retain`;
+  return { url, text, title };
+}
+
+export async function copyVerdictLink(
+  sessionId: string,
+  teamCode: string,
+  results: VoteResult[],
+  displayName: string
+): Promise<boolean> {
+  const { url, text } = buildVerdictSharePayload(
+    sessionId,
+    teamCode,
+    results,
+    displayName
+  );
+
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export async function shareVerdict(
   sessionId: string,
   teamCode: string,
   results: VoteResult[],
   displayName: string
 ): Promise<ShareOutcome> {
-  const url = buildVerdictShareUrl(sessionId, teamCode);
-  const text = buildVerdictShareMessage(teamCode, results, displayName);
-  const teamName = TEAM_NAMES[teamCode] ?? teamCode;
-  const title = `${possessiveLabel(displayName)} ${teamName} picks · Release or Retain`;
+  const { url, text, title } = buildVerdictSharePayload(
+    sessionId,
+    teamCode,
+    results,
+    displayName
+  );
 
   try {
     if (typeof navigator !== "undefined" && navigator.share) {

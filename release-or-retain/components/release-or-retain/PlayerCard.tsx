@@ -67,6 +67,9 @@ function AllRounderStatsSection({ player }: { player: Player }) {
   const s = player.stats as AllRounderStats;
   return (
     <div className="flex flex-col gap-2.5">
+      <p className="text-[11px] text-neutral-500 dark:text-neutral-400 text-center">
+        {s.matches} {s.matches === 1 ? "match" : "matches"} played
+      </p>
       <div>
         <p className="text-[10px] font-semibold tracking-widest text-neutral-400 dark:text-neutral-500 mb-1.5 uppercase">
           Batting
