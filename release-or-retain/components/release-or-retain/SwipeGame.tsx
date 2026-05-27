@@ -14,7 +14,7 @@ interface DragState {
 interface SwipeGameProps {
   players: Player[];
   /** Called on each swipe — use this to write the vote to Supabase */
-  onVote?: (playerId: number, decision: "retain" | "release") => Promise<void>;
+  onVote?: (playerId: number, decision: "retain" | "release") => void;
   /** Called when all players have been swiped */
   onComplete?: (results: VoteResult[]) => void;
 }
@@ -45,9 +45,9 @@ export default function SwipeGame({ players, onVote, onComplete }: SwipeGameProp
       // optimistically record the result
       const newResults = [...results, { player: currentPlayer, decision }];
 
-      // call external vote handler (Supabase write happens here)
+      // Non-blocking: swipe animation should not wait on Supabase
       if (onVote) {
-        await onVote(currentPlayer.id, decision).catch(console.error);
+        void onVote(currentPlayer.id, decision);
       }
 
       setTimeout(() => {

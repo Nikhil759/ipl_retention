@@ -1,9 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { VoteResult } from "@/types/player";
 import { getPlayersByTeam } from "@/lib/players";
 import { TEAM_NAMES } from "@/lib/team-config";
+import {
+  castVote,
+  completeSession,
+  ensureSession,
+  getOrCreateSessionId,
+  resetSessionId,
+} from "@/lib/session";
 import SwipeGame from "@/components/release-or-retain/SwipeGame";
 import ResultsScreen from "@/components/release-or-retain/ResultsScreen";
 import TeamPicker from "@/components/release-or-retain/TeamPicker";
@@ -11,29 +18,64 @@ import TeamPicker from "@/components/release-or-retain/TeamPicker";
 export default function ReleaseOrRetainPage() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [results, setResults] = useState<VoteResult[] | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
+  const sessionIdRef = useRef("");
 
   const players = useMemo(
     () => (selectedTeam ? getPlayersByTeam(selectedTeam) : []),
     [selectedTeam]
   );
 
-  const handleVote = async (playerId: number, decision: "retain" | "release") => {
-    console.log("Vote:", playerId, decision);
-    // TODO: supabase insert
+  useEffect(() => {
+    if (!selectedTeam || results) {
+      setSessionReady(false);
+      return;
+    }
+
+    let cancelled = false;
+    const sessionId = getOrCreateSessionId();
+    sessionIdRef.current = sessionId;
+
+    ensureSession(sessionId, selectedTeam)
+      .then(() => {
+        if (!cancelled) setSessionReady(true);
+      })
+      .catch((error) => {
+        console.error("Failed to initialize session:", error);
+        if (!cancelled) setSessionReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTeam, results]);
+
+  const handleVote = (playerId: number, decision: "retain" | "release") => {
+    if (!selectedTeam || !sessionIdRef.current) return;
+    void castVote(sessionIdRef.current, playerId, selectedTeam, decision);
   };
 
   const handleComplete = (finalResults: VoteResult[]) => {
+    if (sessionIdRef.current) {
+      void completeSession(sessionIdRef.current);
+    }
     setResults(finalResults);
   };
 
   const handleReset = () => {
+    resetSessionId();
+    sessionIdRef.current = "";
     setResults(null);
     setSelectedTeam(null);
+    setSessionReady(false);
   };
 
   const handleChangeTeam = () => {
+    resetSessionId();
+    sessionIdRef.current = "";
     setResults(null);
     setSelectedTeam(null);
+    setSessionReady(false);
   };
 
   return (
@@ -63,6 +105,11 @@ export default function ReleaseOrRetainPage() {
             teamCode={selectedTeam}
             onPlayAgain={handleReset}
           />
+        ) : !sessionReady ? (
+          <div className="flex flex-col items-center justify-center pt-32 gap-3">
+            <div className="w-8 h-8 rounded-full border-2 border-neutral-300 border-t-neutral-600 animate-spin" />
+            <p className="text-sm text-neutral-400">Loading squad...</p>
+          </div>
         ) : (
           <>
             <div className="flex justify-end mb-4">

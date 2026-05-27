@@ -13,6 +13,8 @@ release-or-retain/out/
 # Env / secrets
 .env
 .env*.local
+release-or-retain/.env
+release-or-retain/.env.local
 
 # OS
 .DS_Store
