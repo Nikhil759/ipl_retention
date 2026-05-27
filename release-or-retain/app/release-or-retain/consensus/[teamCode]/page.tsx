@@ -39,8 +39,8 @@ export default function TeamConsensusPage({ params }: PageProps) {
       <AppBackground />
 
       <SubpageHeader
-        title="Fan Consensus"
-        subtitle="IPL 2026 · COMMUNITY VERDICT"
+        title="Live fan vote"
+        subtitle="IPL 2026 · UPDATES AS FANS VOTE"
         accent={teamName}
         back={<BackToTeamsLink />}
       />

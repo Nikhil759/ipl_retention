@@ -142,12 +142,14 @@ export default function ResultsScreen({
 
       {/* Title */}
       <div className="text-center mb-6 md:mb-10">
-        <h1 className="text-2xl md:text-3xl font-semibold text-white">
-          {isGuest && sharerName
-            ? verdictTitle(sharerName, "guest")
-            : verdictTitle("", "owner")}
-        </h1>
-        <p className="text-sm md:text-base text-gray-400 mt-1 md:mt-2">
+        {!(isGuest && sharerName) && (
+          <h1 className="text-2xl md:text-3xl font-semibold text-white">
+            {isGuest && sharerName
+              ? verdictTitle(sharerName, "guest")
+              : verdictTitle("", "owner")}
+          </h1>
+        )}
+        <p className={`text-sm md:text-base text-gray-400 ${isGuest && sharerName ? "" : "mt-1 md:mt-2"}`}>
           {teamName} · {results.length} players reviewed
         </p>
         {!isGuest && sessionId && (
@@ -161,17 +163,23 @@ export default function ResultsScreen({
               href={`/release-or-retain/consensus/${teamCode}`}
               className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-sm font-medium text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 transition-colors touch-manipulation"
             >
-              View fan consensus
+              See live fan vote
             </Link>
           </div>
         )}
         {isGuest && (
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4 flex flex-wrap justify-center gap-2 md:gap-3">
             <Link
-              href={`/release-or-retain/consensus/${teamCode}`}
+              href={`/release-or-retain?team=${teamCode}`}
               className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-sm font-medium text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 transition-colors touch-manipulation"
             >
-              View fan consensus
+              Make your picks
+            </Link>
+            <Link
+              href={`/release-or-retain/consensus/${teamCode}`}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 bg-white/10 text-sm font-medium text-gray-200 hover:bg-white/15 hover:text-white transition-colors touch-manipulation"
+            >
+              See live fan vote
             </Link>
           </div>
         )}
@@ -217,18 +225,18 @@ export default function ResultsScreen({
 
       {/* Purse summary */}
       <div
-        className="w-full rounded-xl border border-white/10 bg-white/5 p-4 md:p-6 mb-8 md:mb-10"
-        style={{ borderTopColor: teamColor, borderTopWidth: 3 }}
+        className="w-full rounded-xl border border-white/10 bg-white/5 p-3 md:p-4 mb-5 md:mb-6"
+        style={{ borderTopColor: teamColor, borderTopWidth: 2 }}
       >
-        <p className="text-xs font-medium text-gray-500 tracking-widest uppercase mb-3 md:mb-4">
+        <p className="text-[10px] md:text-xs font-medium text-gray-500 tracking-widest uppercase mb-2">
           Salary cap impact
         </p>
-        <div className="flex items-end justify-between gap-6 md:gap-10">
+        <div className="flex items-end justify-between gap-4 md:gap-6">
           <div>
-            <p className="text-2xl md:text-3xl font-semibold text-emerald-400 leading-none tabular-nums">
+            <p className="text-xl md:text-2xl font-semibold text-emerald-400 leading-none tabular-nums">
               {purse.freedDisplay}
             </p>
-            <p className="text-xs md:text-sm text-gray-400 mt-1.5 md:mt-2">
+            <p className="text-[11px] md:text-xs text-gray-400 mt-1">
               Auction purse freed
               {released.length > 0 && (
                 <span className="text-gray-500">
@@ -239,14 +247,14 @@ export default function ResultsScreen({
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm md:text-xl font-semibold text-gray-200 tabular-nums">
+            <p className="text-base md:text-lg font-semibold text-gray-200 tabular-nums">
               {purse.retainedDisplay}
             </p>
-            <p className="text-xs md:text-sm text-gray-400 mt-0.5 md:mt-1">Retained spend</p>
+            <p className="text-[11px] md:text-xs text-gray-400 mt-0.5">Retained spend</p>
           </div>
         </div>
         {purse.total > 0 && (
-          <div className="mt-4 md:mt-5 h-1.5 md:h-2 rounded-full bg-white/10 overflow-hidden flex">
+          <div className="mt-3 h-1 md:h-1.5 rounded-full bg-white/10 overflow-hidden flex">
             <div
               className="h-full bg-emerald-500 transition-all"
               style={{ width: `${(purse.freed / purse.total) * 100}%` }}
@@ -300,15 +308,8 @@ export default function ResultsScreen({
         )}
       </div>
 
-      <div className="flex justify-center w-full">
-        {isGuest ? (
-          <Link
-            href={`/release-or-retain?team=${teamCode}`}
-            className="w-full sm:max-w-xs py-3 md:py-3.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-sm md:text-base text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 transition-colors text-center"
-          >
-            Make your verdict →
-          </Link>
-        ) : (
+      {!isGuest && (
+        <div className="flex justify-center w-full">
           <button
             type="button"
             onClick={onPickAnotherTeam}
@@ -316,8 +317,8 @@ export default function ResultsScreen({
           >
             Pick another team →
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

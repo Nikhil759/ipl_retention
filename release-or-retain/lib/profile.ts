@@ -23,8 +23,8 @@ export function possessiveLabel(name: string): string {
 }
 
 export function verdictTitle(displayName: string, viewer: "owner" | "guest"): string {
-  if (viewer === "owner") return "Your verdict";
-  return `${possessiveLabel(displayName)} verdict`;
+  if (viewer === "owner") return "Your picks";
+  return `${possessiveLabel(displayName)} picks`;
 }
 
 function readCache(sessionId: string): string | null {

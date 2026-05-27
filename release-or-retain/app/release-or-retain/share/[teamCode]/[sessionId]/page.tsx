@@ -49,7 +49,7 @@ export default function SharedVerdictRoute({ params }: PageProps) {
         <AppBackground />
         <div className="flex flex-col items-center justify-center pt-32 gap-3 min-h-[50dvh]">
           <div className="w-8 h-8 rounded-full border-2 border-gray-700 border-t-amber-500 animate-spin" />
-          <p className="text-sm text-gray-400">Loading verdict...</p>
+          <p className="text-sm text-gray-400">Loading picks...</p>
         </div>
       </main>
     );
@@ -60,7 +60,7 @@ export default function SharedVerdictRoute({ params }: PageProps) {
       <main className="min-h-dvh flex flex-col items-center overflow-x-hidden bg-transparent">
         <AppBackground />
         <div className="flex flex-col items-center justify-center pt-32 gap-4 px-4 text-center max-w-md">
-          <p className="text-white text-lg font-medium">Verdict not found</p>
+          <p className="text-white text-lg font-medium">Link not found</p>
           <p className="text-sm text-gray-400">
             This link may be invalid or the squad hasn&apos;t been fully voted on yet.
           </p>
@@ -68,7 +68,7 @@ export default function SharedVerdictRoute({ params }: PageProps) {
             href="/release-or-retain"
             className="mt-2 px-4 py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-sm text-amber-300 hover:bg-amber-500/25 transition-colors"
           >
-            Make your own verdict →
+            Make your picks →
           </Link>
         </div>
       </main>
@@ -80,7 +80,7 @@ export default function SharedVerdictRoute({ params }: PageProps) {
       <AppBackground />
 
       <SubpageHeader
-        title={`${possessiveLabel(displayName)} verdict`}
+        title={`${possessiveLabel(displayName)} picks`}
         subtitle="IPL 2026 · RELEASE OR RETAIN"
         accent={teamName}
         back={<BackToTeamsLink />}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
 import { Player, VoteResult, SwipeDirection } from "@/types/player";
 import {
   CARD_ALLROUNDER_HEIGHT,
@@ -15,6 +15,171 @@ interface DragState {
   x: number;
   y: number;
   active: boolean;
+}
+
+function cardBaseHeight(player: Player): number {
+  return player.type === "all" ? CARD_ALLROUNDER_HEIGHT : CARD_BASE_HEIGHT;
+}
+
+interface CardFaceProps {
+  player: Player;
+  cardScale: number;
+  scaledWidth: number;
+  retainOpacity: number;
+  releaseOpacity: number;
+  priority?: boolean;
+}
+
+function CardFace({
+  player,
+  cardScale,
+  scaledWidth,
+  retainOpacity,
+  releaseOpacity,
+  priority = false,
+}: CardFaceProps) {
+  const baseHeight = cardBaseHeight(player);
+
+  return (
+    <div
+      className="absolute top-0"
+      style={{
+        width: CARD_BASE_WIDTH,
+        height: baseHeight,
+        left: (scaledWidth - CARD_BASE_WIDTH * cardScale) / 2,
+        transform: `scale(${cardScale})`,
+        transformOrigin: "top left",
+      }}
+    >
+      <PlayerCard
+        player={player}
+        retainOpacity={retainOpacity}
+        releaseOpacity={releaseOpacity}
+        priority={priority}
+      />
+    </div>
+  );
+}
+
+interface StackCardLayerProps {
+  player: Player;
+  zIndex: number;
+  stackTransform: string;
+  stackTransition: string;
+  cardScale: number;
+  scaledWidth: number;
+}
+
+function StackCardLayer({
+  player,
+  zIndex,
+  stackTransform,
+  stackTransition,
+  cardScale,
+  scaledWidth,
+}: StackCardLayerProps) {
+  return (
+    <div
+      className="absolute inset-0 overflow-hidden rounded-[20px] border border-white/10 shadow-lg shadow-black/30 pointer-events-none"
+      style={{
+        transform: stackTransform,
+        transition: stackTransition,
+        zIndex,
+        willChange: "transform",
+      }}
+    >
+      <CardFace
+        player={player}
+        cardScale={cardScale}
+        scaledWidth={scaledWidth}
+        retainOpacity={0}
+        releaseOpacity={0}
+      />
+    </div>
+  );
+}
+
+interface ExitCardLayerProps {
+  player: Player;
+  decision: "retain" | "release";
+  startX: number;
+  startY: number;
+  flyDistance: number;
+  flyEasing: string;
+  cardScale: number;
+  scaledWidth: number;
+  session: number;
+  animatedSessionRef: React.MutableRefObject<number>;
+}
+
+function ExitCardLayer({
+  player,
+  decision,
+  startX,
+  startY,
+  flyDistance,
+  flyEasing,
+  cardScale,
+  scaledWidth,
+  session,
+  animatedSessionRef,
+}: ExitCardLayerProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (animatedSessionRef.current === session) return;
+
+    const el = containerRef.current;
+    if (!el) return;
+
+    animatedSessionRef.current = session;
+
+    const rotation = startX / 18;
+    el.style.transition = "none";
+    el.style.transform = `translateX(${startX}px) translateY(${startY * 0.2}px) rotate(${rotation}deg)`;
+
+    const frame = requestAnimationFrame(() => {
+      el.style.transition = flyEasing;
+      el.style.transform =
+        decision === "retain"
+          ? `translateX(${flyDistance}px) rotate(28deg)`
+          : `translateX(-${flyDistance}px) rotate(-28deg)`;
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [
+    session,
+    decision,
+    startX,
+    startY,
+    flyDistance,
+    flyEasing,
+    animatedSessionRef,
+  ]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute inset-0 overflow-hidden rounded-[20px] border border-white/15 shadow-xl shadow-black/40 pointer-events-none touch-none select-none"
+      style={{ zIndex: 3, willChange: "transform" }}
+    >
+      <CardFace
+        player={player}
+        cardScale={cardScale}
+        scaledWidth={scaledWidth}
+        retainOpacity={decision === "retain" ? 1 : 0}
+        releaseOpacity={decision === "release" ? 1 : 0}
+      />
+    </div>
+  );
+}
+
+interface ExitCardState {
+  player: Player;
+  decision: "retain" | "release";
+  startX: number;
+  startY: number;
+  session: number;
 }
 
 interface SwipeGameProps {
@@ -35,6 +200,7 @@ export default function SwipeGame({
   const [currentIdx, setCurrentIdx] = useState(initialResults.length);
   const [results, setResults] = useState<VoteResult[]>(initialResults);
   const [flying, setFlying] = useState<SwipeDirection>(null);
+  const [exitCard, setExitCard] = useState<ExitCardState | null>(null);
   const [drag, setDrag] = useState<DragState>({ x: 0, y: 0, active: false });
   const [cardWidth, setCardWidth] = useState(CARD_BASE_WIDTH);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -43,6 +209,8 @@ export default function SwipeGame({
   const dragRef = useRef<DragState>({ x: 0, y: 0, active: false });
   const measureRef = useRef<HTMLDivElement>(null);
   const flyingRef = useRef(false);
+  const exitSessionRef = useRef(0);
+  const exitAnimatedSessionRef = useRef(0);
 
   const currentPlayer = players[currentIdx];
   const nextPlayer = players[currentIdx + 1];
@@ -97,6 +265,18 @@ export default function SwipeGame({
     (decision: "retain" | "release") => {
       if (flyingRef.current) return;
       flyingRef.current = true;
+
+      const startX = dragRef.current.x;
+      const startY = dragRef.current.y;
+      resetDrag();
+      exitSessionRef.current += 1;
+      setExitCard({
+        player: currentPlayer,
+        decision,
+        startX,
+        startY,
+        session: exitSessionRef.current,
+      });
       setFlying(decision);
 
       const newResults = [...results, { player: currentPlayer, decision }];
@@ -108,8 +288,9 @@ export default function SwipeGame({
       setTimeout(() => {
         setResults(newResults);
         setCurrentIdx((i) => i + 1);
-        resetDrag();
+        setExitCard(null);
         setFlying(null);
+        exitAnimatedSessionRef.current = 0;
         flyingRef.current = false;
 
         if (currentIdx + 1 >= players.length) {
@@ -161,24 +342,37 @@ export default function SwipeGame({
   const releaseOpacity = Math.min(Math.max(-drag.x / 80, 0), 1);
 
   const flyDistance = Math.max(cardWidth * 2.5, 320);
+  const flyEasing = "transform 0.38s cubic-bezier(0.55,0.055,0.675,0.19)";
+  const snapBackEasing =
+    "transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)";
 
-  let cardTransform = `translateX(${drag.x}px) translateY(${drag.y * 0.2}px) rotate(${rotation}deg)`;
-  let cardTransition = drag.active
+  const isFlying = flying !== null;
+  const activePlayer =
+    isFlying && nextPlayer ? nextPlayer : currentPlayer;
+  const stackPlayer = isFlying ? nextNextPlayer : nextPlayer;
+
+  const activeTransform = isFlying
     ? "none"
-    : "transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)";
+    : `translateX(${drag.x}px) translateY(${drag.y * 0.2}px) rotate(${rotation}deg)`;
+  const activeTransition =
+    isFlying || drag.active ? "none" : snapBackEasing;
 
-  if (flying === "retain") {
-    cardTransform = `translateX(${flyDistance}px) rotate(28deg)`;
-    cardTransition = "transform 0.38s cubic-bezier(0.55,0.055,0.675,0.19)";
-  } else if (flying === "release") {
-    cardTransform = `translateX(-${flyDistance}px) rotate(-28deg)`;
-    cardTransition = "transform 0.38s cubic-bezier(0.55,0.055,0.675,0.19)";
-  }
+  const stackProgress = isFlying
+    ? 0
+    : Math.min(Math.abs(drag.x) / 100, 1);
+  const stackScale = 0.94 + 0.06 * stackProgress;
+  const stackY = 14 * (1 - stackProgress);
+  const stackTransform = `scale(${stackScale}) translateY(${stackY}px)`;
+  const stackTransition = isFlying
+    ? "none"
+    : drag.active
+      ? "none"
+      : snapBackEasing;
 
   // ── render ────────────────────────────────────────────────────────────────
 
-  const isAllRounder = currentPlayer?.type === "all";
-  const baseHeight = isAllRounder ? CARD_ALLROUNDER_HEIGHT : CARD_BASE_HEIGHT;
+  const layoutPlayer = activePlayer ?? currentPlayer;
+  const baseHeight = cardBaseHeight(layoutPlayer);
   const widthScale = cardWidth / CARD_BASE_WIDTH;
   const viewportOffset = isDesktop ? 200 : 220;
   const maxHeight =
@@ -224,17 +418,15 @@ export default function SwipeGame({
             className="relative mx-auto"
             style={{ width: scaledWidth, height: scaledHeight }}
           >
-            {nextNextPlayer && (
-              <div
-                className="absolute inset-0 rounded-[20px] border border-white/10 bg-white/5"
-                style={{ transform: "scale(0.88) translateY(28px)", zIndex: 0 }}
-              />
-            )}
-
-            {nextPlayer && (
-              <div
-                className="absolute inset-0 rounded-[20px] border border-white/10 bg-white/5"
-                style={{ transform: "scale(0.94) translateY(14px)", zIndex: 1 }}
+            {stackPlayer && (
+              <StackCardLayer
+                key={stackPlayer.id}
+                player={stackPlayer}
+                zIndex={1}
+                stackTransform={stackTransform}
+                stackTransition={stackTransition}
+                cardScale={cardScale}
+                scaledWidth={scaledWidth}
               />
             )}
 
@@ -246,30 +438,38 @@ export default function SwipeGame({
               className="absolute inset-0 overflow-hidden rounded-[20px] border border-white/15 shadow-xl shadow-black/40 cursor-grab active:cursor-grabbing touch-none select-none"
               style={{
                 zIndex: 2,
-                transform: cardTransform,
-                transition: cardTransition,
+                transform: activeTransform,
+                transition: activeTransition,
                 willChange: "transform",
                 touchAction: "none",
               }}
             >
-              <div
-                className="absolute top-0"
-                style={{
-                  width: CARD_BASE_WIDTH,
-                  height: baseHeight,
-                  left: (scaledWidth - CARD_BASE_WIDTH * cardScale) / 2,
-                  transform: `scale(${cardScale})`,
-                  transformOrigin: "top left",
-                }}
-              >
-                <PlayerCard
-                  player={currentPlayer}
-                  retainOpacity={retainOpacity}
-                  releaseOpacity={releaseOpacity}
-                  priority
-                />
-              </div>
+              <CardFace
+                key={activePlayer.id}
+                player={activePlayer}
+                cardScale={cardScale}
+                scaledWidth={scaledWidth}
+                retainOpacity={isFlying ? 0 : retainOpacity}
+                releaseOpacity={isFlying ? 0 : releaseOpacity}
+                priority
+              />
             </div>
+
+            {exitCard && isFlying && (
+              <ExitCardLayer
+                key={exitCard.session}
+                player={exitCard.player}
+                decision={exitCard.decision}
+                startX={exitCard.startX}
+                startY={exitCard.startY}
+                flyDistance={flyDistance}
+                flyEasing={flyEasing}
+                cardScale={cardScale}
+                scaledWidth={scaledWidth}
+                session={exitCard.session}
+                animatedSessionRef={exitAnimatedSessionRef}
+              />
+            )}
           </div>
         </div>
 

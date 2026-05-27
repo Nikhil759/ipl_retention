@@ -35,7 +35,7 @@ export default function DisplayNameModal({
         className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#0F1629] p-5 md:p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold text-white">Name your verdict</h2>
+        <h2 className="text-lg font-semibold text-white">What should we call you?</h2>
         <p className="text-sm text-gray-400 mt-1.5">
           Shown on your shared link so friends know it&apos;s yours. You only set this once.
         </p>

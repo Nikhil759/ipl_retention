@@ -35,7 +35,7 @@ export function buildVerdictShareMessage(
       ? "My"
       : `${possessiveLabel(displayName)}`;
 
-  return `${who} ${teamName} IPL 2026 verdict: ${retained} retained, ${released} released · ${purse.freedDisplay} auction purse freed. What's yours?`;
+  return `${who} ${teamName} IPL 2026 picks: ${retained} retained, ${released} released · ${purse.freedDisplay} auction purse freed. What would you pick?`;
 }
 
 export async function shareVerdict(
@@ -47,7 +47,7 @@ export async function shareVerdict(
   const url = buildVerdictShareUrl(sessionId, teamCode);
   const text = buildVerdictShareMessage(teamCode, results, displayName);
   const teamName = TEAM_NAMES[teamCode] ?? teamCode;
-  const title = `${possessiveLabel(displayName)} ${teamName} verdict · Release or Retain`;
+  const title = `${possessiveLabel(displayName)} ${teamName} picks · Release or Retain`;
 
   try {
     if (typeof navigator !== "undefined" && navigator.share) {

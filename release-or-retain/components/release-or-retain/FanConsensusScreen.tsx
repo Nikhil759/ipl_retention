@@ -176,7 +176,7 @@ export default function FanConsensusScreen({ teamCode }: FanConsensusScreenProps
     return (
       <div className="flex flex-col items-center justify-center pt-24 md:pt-32 gap-3 min-h-[40dvh]">
         <div className="w-8 h-8 rounded-full border-2 border-gray-700 border-t-amber-500 animate-spin" />
-        <p className="text-sm text-gray-400">Loading fan consensus...</p>
+        <p className="text-sm text-gray-400">Loading live fan vote...</p>
       </div>
     );
   }
@@ -186,10 +186,7 @@ export default function FanConsensusScreen({ teamCode }: FanConsensusScreenProps
   return (
     <div className="flex flex-col items-center w-full pb-12 md:pb-16">
       <div className="text-center mb-6 md:mb-10">
-        <h1 className="text-2xl md:text-3xl font-semibold text-white">
-          Fan consensus
-        </h1>
-        <p className="text-sm md:text-base text-gray-400 mt-1 md:mt-2">
+        <p className="text-sm md:text-base text-gray-400">
           {teamName} · {data.players.length} players
         </p>
       </div>
@@ -280,7 +277,7 @@ export default function FanConsensusScreen({ teamCode }: FanConsensusScreenProps
           href={`/release-or-retain?team=${teamCode}`}
           className="w-full sm:w-auto sm:min-w-[200px] py-3 md:py-3.5 px-6 rounded-xl border border-amber-500/40 bg-amber-500/15 text-sm md:text-base text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 transition-colors text-center"
         >
-          See my verdict →
+          See my picks →
         </Link>
       </div>
     </div>

@@ -59,7 +59,7 @@ export default function ShareVerdictButton({
         ? "Shared!"
         : status === "error"
           ? "Couldn't share"
-          : "Share my verdict";
+          : "Share my picks";
 
   return (
     <>

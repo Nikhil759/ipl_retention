@@ -194,11 +194,11 @@ export default function TeamPicker({
 
           <div className="mt-12 md:mt-16 pt-8 md:pt-10 border-t border-white/10">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">
-              Fan consensus
+              Live fan vote
             </h2>
             <p className="text-sm md:text-base text-gray-400 mb-6 md:mb-8 max-w-2xl">
-              See how the community voted — player-by-player retain / release splits
-              and the auction purse impact.
+              Live player-by-player retain / release splits — updates as more
+              fans vote.
             </p>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 md:gap-3">

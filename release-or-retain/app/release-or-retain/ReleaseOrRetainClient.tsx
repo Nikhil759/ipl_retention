@@ -136,7 +136,7 @@ export default function ReleaseOrRetainClient() {
       {selectedTeam && (
         <SubpageHeader
           title="Release or Retain"
-          subtitle="IPL 2026 · YOUR VERDICT"
+          subtitle="IPL 2026 · YOUR PICKS"
           accent={TEAM_NAMES[selectedTeam] ?? selectedTeam}
           back={<BackToTeamsButton onClick={handlePickAnotherTeam} />}
         />
