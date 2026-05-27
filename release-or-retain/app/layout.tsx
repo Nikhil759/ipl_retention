@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { displayFont } from "@/lib/fonts";
 
 export const metadata: Metadata = {
   title: "Release or Retain | IPL 2026",
@@ -19,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="overflow-x-hidden">{children}</body>
+    <html lang="en" className={displayFont.variable} style={{ backgroundColor: "#080C18" }}>
+      <body className="overflow-x-hidden bg-transparent">{children}</body>
     </html>
   );
 }

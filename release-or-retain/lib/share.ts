@@ -1,0 +1,59 @@
+import { TEAM_NAMES } from "@/lib/team-config";
+import { computePurseSummary } from "@/lib/format-salary";
+import { getTeamVotes, votesToResults } from "@/lib/session";
+import { createClient } from "@/lib/supabase/client";
+import { VoteResult } from "@/types/player";
+
+export function buildVerdictShareUrl(sessionId: string, teamCode: string): string {
+  const origin =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : process.env.NEXT_PUBLIC_SITE_URL ?? "https://releaseorretain.live";
+
+  return `${origin}/release-or-retain/share/${teamCode}/${sessionId}`;
+}
+
+export function buildVerdictShareMessage(
+  teamCode: string,
+  results: VoteResult[]
+): string {
+  const teamName = TEAM_NAMES[teamCode] ?? teamCode;
+  const retained = results.filter((r) => r.decision === "retain").length;
+  const released = results.filter((r) => r.decision === "release").length;
+  const purse = computePurseSummary(results);
+
+  return `My ${teamName} IPL 2026 verdict: ${retained} retained, ${released} released · ${purse.freedDisplay} auction purse freed. What's yours?`;
+}
+
+export async function getSharedVerdict(
+  sessionId: string,
+  teamCode: string
+): Promise<VoteResult[] | null> {
+  const supabase = createClient();
+
+  const { data: session, error: sessionError } = await supabase
+    .from("sessions")
+    .select("completed_at")
+    .eq("id", sessionId)
+    .eq("team_code", teamCode)
+    .maybeSingle();
+
+  if (sessionError) {
+    console.error("Shared verdict session error:", sessionError.message);
+    return null;
+  }
+
+  if (!session?.completed_at) return null;
+
+  const votes = await getTeamVotes(sessionId, teamCode);
+  if (votes.length === 0) return null;
+
+  return votesToResults(votes, teamCode);
+}
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isValidSessionId(sessionId: string): boolean {
+  return UUID_RE.test(sessionId);
+}

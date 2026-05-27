@@ -37,10 +37,11 @@ export default function SwipeGame({
   const [flying, setFlying] = useState<SwipeDirection>(null);
   const [drag, setDrag] = useState<DragState>({ x: 0, y: 0, active: false });
   const [cardWidth, setCardWidth] = useState(CARD_BASE_WIDTH);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   const startPos = useRef({ x: 0, y: 0 });
   const dragRef = useRef<DragState>({ x: 0, y: 0, active: false });
-  const stackRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
   const flyingRef = useRef(false);
 
   const currentPlayer = players[currentIdx];
@@ -48,7 +49,15 @@ export default function SwipeGame({
   const nextNextPlayer = players[currentIdx + 2];
 
   useEffect(() => {
-    const el = stackRef.current;
+    const mq = window.matchMedia("(min-width: 768px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    const el = measureRef.current;
     if (!el) return;
 
     const updateLayout = () => {
@@ -63,7 +72,7 @@ export default function SwipeGame({
       observer.disconnect();
       window.removeEventListener("resize", updateLayout);
     };
-  }, []);
+  }, [isDesktop]);
 
   useEffect(() => {
     if (nextPlayer?.hasValidImage) {
@@ -171,120 +180,125 @@ export default function SwipeGame({
   const isAllRounder = currentPlayer?.type === "all";
   const baseHeight = isAllRounder ? CARD_ALLROUNDER_HEIGHT : CARD_BASE_HEIGHT;
   const widthScale = cardWidth / CARD_BASE_WIDTH;
+  const viewportOffset = isDesktop ? 200 : 220;
   const maxHeight =
-    typeof window !== "undefined" ? window.innerHeight - 220 : baseHeight;
+    typeof window !== "undefined" ? window.innerHeight - viewportOffset : baseHeight;
   const heightScale = maxHeight / baseHeight;
-  const cardScale = Math.min(widthScale, heightScale, 1);
-  const cardHeight = baseHeight * cardScale;
+  const maxScale = isDesktop ? 1.12 : 1;
+  const cardScale = Math.min(widthScale, heightScale, maxScale);
+  const scaledWidth = CARD_BASE_WIDTH * cardScale;
+  const scaledHeight = baseHeight * cardScale;
 
   if (!currentPlayer) return null;
 
   return (
-    <div className="flex flex-col items-center w-full pb-2">
+    <div className="flex flex-col items-center w-full pb-4 md:pb-10 pt-1 md:pt-2">
 
-      {/* ── Header counters ── */}
-      <div className="flex justify-between items-center w-full max-w-xs mb-4 px-1">
-        <div className="text-center">
-          <p className="text-2xl font-semibold text-red-500 leading-none">{released}</p>
-          <p className="text-[10px] text-neutral-400 tracking-widest mt-1">RELEASED</p>
+      {/* Counters */}
+      <div className="flex justify-between items-center w-full max-w-xs md:max-w-2xl mb-5 md:mb-10 px-2 md:px-0">
+        <div className="text-center min-w-[72px] md:min-w-[96px]">
+          <p className="text-2xl md:text-4xl font-semibold text-red-400 leading-none tabular-nums">{released}</p>
+          <p className="text-[10px] md:text-xs text-gray-500 tracking-widest mt-1 md:mt-2">RELEASED</p>
         </div>
 
-        <div className="text-center">
-          <p className="text-sm font-medium text-neutral-500">
+        <div className="text-center px-3 md:px-8">
+          <p className="text-sm md:text-lg font-medium text-gray-300 tabular-nums">
             {currentIdx + 1} / {players.length}
           </p>
-          <p className="text-[10px] text-neutral-400 tracking-widest mt-0.5">IPL 2026</p>
+          <p className="text-[10px] md:text-xs text-gray-500 tracking-widest mt-0.5 md:mt-1">IPL 2026</p>
         </div>
 
-        <div className="text-center">
-          <p className="text-2xl font-semibold text-green-700 leading-none">{retained}</p>
-          <p className="text-[10px] text-neutral-400 tracking-widest mt-1">RETAINED</p>
+        <div className="text-center min-w-[72px] md:min-w-[96px]">
+          <p className="text-2xl md:text-4xl font-semibold text-green-400 leading-none tabular-nums">{retained}</p>
+          <p className="text-[10px] md:text-xs text-gray-500 tracking-widest mt-1 md:mt-2">RETAINED</p>
         </div>
       </div>
 
-      {/* ── Card stack ── */}
-      <div
-        ref={stackRef}
-        className="relative w-full max-w-[340px]"
-        style={{ height: cardHeight }}
-      >
-        {nextNextPlayer && (
-          <div
-            className="absolute inset-0 rounded-[20px] border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
-            style={{ transform: "scale(0.88) translateY(28px)", zIndex: 0 }}
-          />
-        )}
-
-        {nextPlayer && (
-          <div
-            className="absolute inset-0 rounded-[20px] border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900"
-            style={{ transform: "scale(0.94) translateY(14px)", zIndex: 1 }}
-          />
-        )}
-
+      {/* Card + actions */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-center md:gap-12 lg:gap-16 w-full">
         <div
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          className="absolute inset-0 overflow-hidden rounded-[20px] border border-neutral-200 dark:border-neutral-700 shadow-md cursor-grab active:cursor-grabbing touch-none select-none"
-          style={{
-            zIndex: 2,
-            transform: cardTransform,
-            transition: cardTransition,
-            willChange: "transform",
-            touchAction: "none",
-          }}
+          ref={measureRef}
+          className="w-full max-w-[340px] md:max-w-[380px] mx-auto md:mx-0 md:flex-shrink-0"
         >
           <div
-            className="absolute top-0"
-            style={{
-              width: CARD_BASE_WIDTH,
-              height: baseHeight,
-              left: (cardWidth - CARD_BASE_WIDTH * cardScale) / 2,
-              transform: `scale(${cardScale})`,
-              transformOrigin: "top left",
-            }}
+            className="relative mx-auto"
+            style={{ width: scaledWidth, height: scaledHeight }}
           >
-            <PlayerCard
-              player={currentPlayer}
-              retainOpacity={retainOpacity}
-              releaseOpacity={releaseOpacity}
-              priority
-            />
+            {nextNextPlayer && (
+              <div
+                className="absolute inset-0 rounded-[20px] border border-white/10 bg-white/5"
+                style={{ transform: "scale(0.88) translateY(28px)", zIndex: 0 }}
+              />
+            )}
+
+            {nextPlayer && (
+              <div
+                className="absolute inset-0 rounded-[20px] border border-white/10 bg-white/5"
+                style={{ transform: "scale(0.94) translateY(14px)", zIndex: 1 }}
+              />
+            )}
+
+            <div
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              className="absolute inset-0 overflow-hidden rounded-[20px] border border-white/15 shadow-xl shadow-black/40 cursor-grab active:cursor-grabbing touch-none select-none"
+              style={{
+                zIndex: 2,
+                transform: cardTransform,
+                transition: cardTransition,
+                willChange: "transform",
+                touchAction: "none",
+              }}
+            >
+              <div
+                className="absolute top-0"
+                style={{
+                  width: CARD_BASE_WIDTH,
+                  height: baseHeight,
+                  left: (scaledWidth - CARD_BASE_WIDTH * cardScale) / 2,
+                  transform: `scale(${cardScale})`,
+                  transformOrigin: "top left",
+                }}
+              >
+                <PlayerCard
+                  player={currentPlayer}
+                  retainOpacity={retainOpacity}
+                  releaseOpacity={releaseOpacity}
+                  priority
+                />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* ── Action buttons ── */}
-      <div className="flex items-center gap-6 sm:gap-8 mt-5 w-full max-w-xs justify-center">
-        <button
-          type="button"
-          onClick={() => doDecision("release")}
-          aria-label="Release"
-          className="w-14 h-14 rounded-full border-2 border-red-400 text-red-500 hover:bg-red-50 dark:hover:bg-red-950 active:scale-95 transition-all flex items-center justify-center text-2xl touch-manipulation"
-        >
-          ✕
-        </button>
+        {/* Actions — row on mobile, column on desktop */}
+        <div className="flex md:flex-col items-center gap-6 md:gap-5 mt-6 md:mt-0 w-full max-w-xs md:max-w-none md:min-w-[200px] justify-center px-2 md:px-0">
+          <button
+            type="button"
+            onClick={() => doDecision("release")}
+            aria-label="Release"
+            className="w-14 h-14 md:w-[72px] md:h-[72px] rounded-full border-2 border-red-400/80 text-red-400 hover:bg-red-500/10 active:scale-95 transition-all flex items-center justify-center text-2xl md:text-3xl touch-manipulation shrink-0"
+          >
+            ✕
+          </button>
 
-        <div className="text-center shrink min-w-0 leading-snug">
-          <p className="text-[11px] text-red-500/90 dark:text-red-400 font-medium">
-            Swipe ← release
-          </p>
-          <p className="text-[11px] text-green-700/90 dark:text-green-400 font-medium mt-0.5">
-            Swipe → retain
-          </p>
-          <p className="text-[10px] text-neutral-400 mt-1">or tap ✕ / ✓</p>
+          <div className="text-center shrink min-w-0 leading-snug px-1 md:py-2">
+            <p className="text-[11px] md:text-sm text-red-400 font-medium">Swipe ← release</p>
+            <p className="text-[11px] md:text-sm text-green-400 font-medium mt-0.5 md:mt-1">Swipe → retain</p>
+            <p className="text-[10px] md:text-xs text-gray-500 mt-1 md:mt-2">or tap ✕ / ✓</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => doDecision("retain")}
+            aria-label="Retain"
+            className="w-14 h-14 md:w-[72px] md:h-[72px] rounded-full border-2 border-green-500/80 text-green-400 hover:bg-green-500/10 active:scale-95 transition-all flex items-center justify-center text-2xl md:text-3xl touch-manipulation shrink-0"
+          >
+            ✓
+          </button>
         </div>
-
-        <button
-          type="button"
-          onClick={() => doDecision("retain")}
-          aria-label="Retain"
-          className="w-14 h-14 rounded-full border-2 border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-950 active:scale-95 transition-all flex items-center justify-center text-2xl touch-manipulation"
-        >
-          ✓
-        </button>
       </div>
     </div>
   );
