@@ -40,6 +40,8 @@ function communityLine(
   return `Fans would retain · ${stat.retain_pct}% retain`;
 }
 
+type ResultsTab = "retain" | "release";
+
 export default function ResultsScreen({
   results,
   teamCode,
@@ -49,15 +51,21 @@ export default function ResultsScreen({
     Record<number, CommunityStat>
   >({});
 
+  const retained = results.filter((r) => r.decision === "retain");
+  const released = results.filter((r) => r.decision === "release");
+
+  const [activeTab, setActiveTab] = useState<ResultsTab>(
+    retained.length > 0 ? "retain" : "release"
+  );
+  const purse = computePurseSummary(results);
+  const teamName = TEAM_NAMES[teamCode] ?? teamCode;
+  const teamColor = TEAM_COLORS[teamCode]?.primary ?? "#1a1a1a";
+
   useEffect(() => {
     void getCommunityStats(teamCode).then(setCommunityStats);
   }, [teamCode]);
 
-  const retained = results.filter((r) => r.decision === "retain");
-  const released = results.filter((r) => r.decision === "release");
-  const purse = computePurseSummary(results);
-  const teamName = TEAM_NAMES[teamCode] ?? teamCode;
-  const teamColor = TEAM_COLORS[teamCode]?.primary ?? "#1a1a1a";
+  const activeList = activeTab === "retain" ? retained : released;
 
   const communitySummary = useMemo(() => {
     const withStats = results.filter((r) => communityStats[r.player.id]?.total_votes);
@@ -80,10 +88,7 @@ export default function ResultsScreen({
     };
   }, [results, communityStats]);
 
-  const renderPlayerRow = (
-    { player, decision }: VoteResult,
-    badge: { label: string; className: string }
-  ) => {
+  const renderPlayerRow = ({ player, decision }: VoteResult) => {
     const tc = TEAM_COLORS[player.teamCode];
     const stat = communityStats[player.id];
     const fanLine = communityLine(decision, stat);
@@ -139,11 +144,6 @@ export default function ResultsScreen({
             </p>
           )}
         </div>
-        <span
-          className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${badge.className}`}
-        >
-          {badge.label}
-        </span>
       </div>
     );
   };
@@ -177,24 +177,41 @@ export default function ResultsScreen({
         </div>
       )}
 
-      {/* Summary pills */}
+      {/* Summary pills — tap to switch player list tab */}
       <div className="flex gap-4 w-full mb-4">
-        <div className="flex-1 bg-green-50 dark:bg-green-950 rounded-xl py-4 text-center">
+        <button
+          type="button"
+          onClick={() => setActiveTab("retain")}
+          className={`flex-1 rounded-xl py-4 text-center transition-all ${
+            activeTab === "retain"
+              ? "bg-green-100 dark:bg-green-900 ring-2 ring-green-600 dark:ring-green-500"
+              : "bg-green-50 dark:bg-green-950 hover:bg-green-100 dark:hover:bg-green-900"
+          }`}
+        >
           <p className="text-3xl font-semibold text-green-700 dark:text-green-400">
             {retained.length}
           </p>
           <p className="text-xs text-green-600 dark:text-green-500 tracking-widest mt-1">
             RETAINED
           </p>
-        </div>
-        <div className="flex-1 bg-red-50 dark:bg-red-950 rounded-xl py-4 text-center">
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("release")}
+          disabled={released.length === 0}
+          className={`flex-1 rounded-xl py-4 text-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+            activeTab === "release"
+              ? "bg-red-100 dark:bg-red-900 ring-2 ring-red-500 dark:ring-red-400"
+              : "bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-900"
+          }`}
+        >
           <p className="text-3xl font-semibold text-red-500 dark:text-red-400">
             {released.length}
           </p>
           <p className="text-xs text-red-500 dark:text-red-400 tracking-widest mt-1">
             RELEASED
           </p>
-        </div>
+        </button>
       </div>
 
       {/* Purse summary */}
@@ -241,47 +258,46 @@ export default function ResultsScreen({
         )}
       </div>
 
-      {/* Retained section */}
-      {retained.length > 0 && (
-        <div className="w-full mb-6">
-          <p className="text-xs font-medium text-neutral-400 tracking-widest uppercase mb-3">
-            Retained
-          </p>
-          <div className="flex flex-col gap-2">
-            {retained.map((result) =>
-              renderPlayerRow(result, {
-                label: "RETAIN",
-                className:
-                  "text-green-700 bg-green-100 dark:bg-green-950 dark:text-green-400",
-              })
-            )}
-          </div>
+      {/* Tabbed player list */}
+      <div className="w-full mb-8">
+        <div className="flex rounded-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden mb-3">
+          <button
+            type="button"
+            onClick={() => setActiveTab("retain")}
+            className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+              activeTab === "retain"
+                ? "bg-green-600 text-white dark:bg-green-700"
+                : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+            }`}
+          >
+            Retained ({retained.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("release")}
+            disabled={released.length === 0}
+            className={`flex-1 py-2.5 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+              activeTab === "release"
+                ? "bg-red-600 text-white dark:bg-red-700"
+                : "bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+            }`}
+          >
+            Released ({released.length})
+          </button>
         </div>
-      )}
 
-      {/* Released section */}
-      {released.length > 0 && (
-        <div className="w-full mb-8">
-          <p className="text-xs font-medium text-neutral-400 tracking-widest uppercase mb-3">
-            Released
+        {activeList.length === 0 ? (
+          <p className="text-center text-sm text-neutral-500 py-8">
+            {activeTab === "release"
+              ? "No releases — your auction purse stays unchanged."
+              : "No players retained."}
           </p>
-          <div className="flex flex-col gap-2">
-            {released.map((result) =>
-              renderPlayerRow(result, {
-                label: "RELEASE",
-                className:
-                  "text-red-600 bg-red-50 dark:bg-red-950 dark:text-red-400",
-              })
-            )}
+        ) : (
+          <div className="flex flex-col gap-2 max-h-[420px] overflow-y-auto pr-0.5">
+            {activeList.map((result) => renderPlayerRow(result))}
           </div>
-        </div>
-      )}
-
-      {released.length === 0 && (
-        <p className="w-full text-center text-sm text-neutral-500 mb-8 -mt-4">
-          No releases — your auction purse stays unchanged.
-        </p>
-      )}
+        )}
+      </div>
 
       <button
         onClick={onPickAnotherTeam}
