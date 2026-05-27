@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { VoteResult } from "@/types/player";
 import { copyVerdictLink, shareVerdict } from "@/lib/share";
+import { logShare } from "@/lib/analytics";
 import { getDisplayName, saveDisplayName } from "@/lib/profile";
 import DisplayNameModal from "./DisplayNameModal";
 
@@ -34,6 +35,7 @@ export default function ShareVerdictButton({
     const outcome = await shareVerdict(sessionId, teamCode, results, displayName);
     setShareStatus(outcome);
     if (outcome !== "error") {
+      void logShare(sessionId, teamCode, "native");
       setTimeout(() => setShareStatus("idle"), 2500);
     }
   };
@@ -41,6 +43,9 @@ export default function ShareVerdictButton({
   const runCopy = async (displayName: string) => {
     const ok = await copyVerdictLink(sessionId, teamCode, results, displayName);
     setCopyStatus(ok ? "copied" : "error");
+    if (ok) {
+      void logShare(sessionId, teamCode, "copy");
+    }
     setTimeout(() => setCopyStatus("idle"), 2500);
   };
 

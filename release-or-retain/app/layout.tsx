@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { displayFont } from "@/lib/fonts";
+import TrackVisit from "@/components/TrackVisit";
 
 export const metadata: Metadata = {
   title: "Release or Retain | IPL 2026",
@@ -21,7 +23,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={displayFont.variable} style={{ backgroundColor: "#080C18" }}>
-      <body className="overflow-x-hidden bg-transparent">{children}</body>
+      <body className="overflow-x-hidden bg-transparent">
+        <Suspense fallback={null}>
+          <TrackVisit />
+        </Suspense>
+        {children}
+      </body>
     </html>
   );
 }
