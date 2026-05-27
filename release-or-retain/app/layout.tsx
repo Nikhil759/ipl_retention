@@ -7,6 +7,11 @@ import TrackVisit from "@/components/TrackVisit";
 export const metadata: Metadata = {
   title: "Release or Retain | IPL 2026",
   description: "Swipe to vote — should IPL teams retain or release their players?",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
 };
 
 export const viewport: Viewport = {
