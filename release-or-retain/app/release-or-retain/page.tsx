@@ -107,8 +107,8 @@ export default function ReleaseOrRetainPage() {
   };
 
   return (
-    <main className="min-h-dvh bg-neutral-50 dark:bg-neutral-950 flex flex-col items-center overflow-x-hidden">
-      <header className="w-full py-5 px-4 sm:px-6 border-b border-neutral-200 dark:border-neutral-800 mb-6 pt-[max(1.25rem,env(safe-area-inset-top))]">
+    <main className="min-h-dvh bg-gradient-to-b from-[#0A0E1A] to-[#0F1320] flex flex-col items-center overflow-x-hidden">
+      <header className="w-full py-5 px-4 sm:px-6 border-b border-neutral-800 mb-6 pt-[max(1.25rem,env(safe-area-inset-top))]">
         <div className="relative flex items-center max-w-sm mx-auto">
           {selectedTeam ? (
             <button
