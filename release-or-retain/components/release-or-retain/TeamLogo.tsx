@@ -19,7 +19,7 @@ export default function TeamLogo({ teamCode, size = 48 }: TeamLogoProps) {
   if (failed) {
     return (
       <div
-        className="rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
+        className="rounded flex items-center justify-center text-xs font-bold flex-shrink-0"
         style={{
           width: size,
           height: size,
@@ -34,7 +34,7 @@ export default function TeamLogo({ teamCode, size = 48 }: TeamLogoProps) {
 
   return (
     <div
-      className="relative rounded-xl overflow-hidden flex-shrink-0 bg-white dark:bg-neutral-800"
+      className="relative rounded overflow-hidden flex-shrink-0"
       style={{ width: size, height: size }}
     >
       <Image
@@ -42,7 +42,7 @@ export default function TeamLogo({ teamCode, size = 48 }: TeamLogoProps) {
         alt={`${teamCode} logo`}
         fill
         sizes={`${size}px`}
-        className="object-contain p-1.5"
+        className="object-contain p-1"
         onError={() => setFailed(true)}
       />
     </div>

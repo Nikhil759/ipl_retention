@@ -19,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="overflow-x-hidden">{children}</body>
+    <html lang="en" style={{ backgroundColor: "#080C18" }}>
+      <body className="overflow-x-hidden bg-transparent">{children}</body>
     </html>
   );
 }
