@@ -101,12 +101,14 @@ interface PlayerCardProps {
   player: Player;
   retainOpacity: number;
   releaseOpacity: number;
+  priority?: boolean;
 }
 
 export default function PlayerCard({
   player,
   retainOpacity,
   releaseOpacity,
+  priority = false,
 }: PlayerCardProps) {
   const teamColor = TEAM_COLORS[player.teamCode] ?? {
     primary: "#1a1a1a",
@@ -128,6 +130,7 @@ export default function PlayerCard({
           src={player.imageUrl}
           alt={player.name}
           hasValidImage={player.hasValidImage}
+          priority={priority}
         />
 
         {/* Gradient fade at the bottom so text is readable */}

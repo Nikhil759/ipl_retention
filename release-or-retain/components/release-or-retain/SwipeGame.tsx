@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Player, VoteResult, SwipeDirection } from "@/types/player";
 import { SWIPE_THRESHOLD } from "@/lib/team-config";
+import { preloadPlayerImage } from "@/lib/preload-image";
 import PlayerCard from "./PlayerCard";
 
 interface DragState {
@@ -31,6 +32,15 @@ export default function SwipeGame({ players, onVote, onComplete }: SwipeGameProp
   const currentPlayer = players[currentIdx];
   const nextPlayer    = players[currentIdx + 1];
   const nextNextPlayer = players[currentIdx + 2];
+
+  useEffect(() => {
+    if (nextPlayer?.hasValidImage) {
+      preloadPlayerImage(nextPlayer.imageUrl);
+    }
+    if (nextNextPlayer?.hasValidImage) {
+      preloadPlayerImage(nextNextPlayer.imageUrl);
+    }
+  }, [currentIdx, nextPlayer, nextNextPlayer]);
 
   const retained = results.filter((r) => r.decision === "retain").length;
   const released = results.filter((r) => r.decision === "release").length;
@@ -178,6 +188,7 @@ export default function SwipeGame({ players, onVote, onComplete }: SwipeGameProp
             player={currentPlayer}
             retainOpacity={retainOpacity}
             releaseOpacity={releaseOpacity}
+            priority
           />
         </div>
       </div>

@@ -2,12 +2,18 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import {
+  CARD_IMAGE_QUALITY,
+  CARD_IMAGE_SIZES,
+  THUMB_IMAGE_SIZES,
+} from "@/lib/preload-image";
 
 interface PlayerPhotoProps {
   src: string;
   alt: string;
   hasValidImage: boolean;
   compact?: boolean;
+  priority?: boolean;
 }
 
 function PlayerSilhouette({ alt, compact }: { alt: string; compact?: boolean }) {
@@ -41,6 +47,7 @@ export default function PlayerPhoto({
   alt,
   hasValidImage,
   compact = false,
+  priority = false,
 }: PlayerPhotoProps) {
   const [loadFailed, setLoadFailed] = useState(false);
   const showSilhouette = !hasValidImage || loadFailed;
@@ -54,6 +61,9 @@ export default function PlayerPhoto({
       src={src}
       alt={alt}
       fill
+      sizes={compact ? THUMB_IMAGE_SIZES : CARD_IMAGE_SIZES}
+      quality={CARD_IMAGE_QUALITY}
+      priority={priority}
       className="object-cover object-top"
       draggable={false}
       onError={() => setLoadFailed(true)}
