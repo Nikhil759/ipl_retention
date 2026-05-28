@@ -74,11 +74,21 @@ def to_float(value: Any) -> float | None:
         return None
 
 
-def infer_role(batting: dict[str, Any] | None, bowling: dict[str, Any] | None) -> str:
+MEANINGFUL_BOWL_BALLS = 36  # ~6 overs — skips occasional part-time spells
+
+
+def _bowling_numbers(
+    batting: dict[str, Any] | None, bowling: dict[str, Any] | None
+) -> tuple[int, int, int, int]:
     bat_runs = to_int(batting.get("Runs") if batting else None) or 0
     bowl_wkts = to_int(bowling.get("Wickets") if bowling else None) or 0
-    bat_innings = to_int(batting.get("Innings") if batting else None) or 0
     bowl_balls = to_int(bowling.get("Balls") if bowling else None) or 0
+    bat_innings = to_int(batting.get("Innings") if batting else None) or 0
+    return bat_runs, bowl_wkts, bowl_balls, bat_innings
+
+
+def infer_role(batting: dict[str, Any] | None, bowling: dict[str, Any] | None) -> str:
+    bat_runs, bowl_wkts, bowl_balls, bat_innings = _bowling_numbers(batting, bowling)
 
     if bat_runs > 0 and bowl_wkts > 0:
         return "all-rounder"
@@ -124,7 +134,18 @@ def resolve_role(
     bowling: dict[str, Any] | None,
     profile_role: str | None,
 ) -> str:
+    bat_runs, bowl_wkts, bowl_balls, _ = _bowling_numbers(batting, bowling)
     role = infer_role(batting, bowling)
+    meaningful_bowl = bowl_wkts > 0 or bowl_balls >= MEANINGFUL_BOWL_BALLS
+
+    # Stats often label wicketless spells as "batter" — trust iplt20 profile
+    # when there is meaningful bowling, but only for bowling roles.
+    if role == "batter" and meaningful_bowl and profile_role in ("bowler", "all-rounder"):
+        return profile_role
+
+    if role == "bowler" and profile_role == "all-rounder" and bat_runs > 0:
+        return "all-rounder"
+
     if role != "unknown":
         return role
     if profile_role and profile_role != "unknown":
