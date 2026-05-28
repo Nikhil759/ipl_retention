@@ -24,6 +24,7 @@ import ResultsScreen from "@/components/release-or-retain/ResultsScreen";
 import TeamPicker from "@/components/release-or-retain/TeamPicker";
 import { BackToTeamsButton, SubpageHeader } from "@/components/release-or-retain/SubpageHeader";
 import { getAllTeamsFanVoteCounts } from "@/lib/consensus";
+import { useScrollToTop } from "@/lib/use-scroll-to-top";
 
 function squadSizesByTeam() {
   return Object.fromEntries(
@@ -180,6 +181,8 @@ export default function ReleaseOrRetainClient() {
 
   const onHome = !selectedTeam;
   const inGame = selectedTeam && !results;
+
+  useScrollToTop(selectedTeam, results, optionalVoteMode, loadingTeam, sessionReady);
 
   return (
     <main className="min-h-dvh flex flex-col items-center overflow-x-hidden bg-transparent">

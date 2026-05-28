@@ -24,19 +24,6 @@ export function buildVerdictShareUrl(sessionId: string, teamCode: string): strin
   return `${origin}/release-or-retain/share/${teamCode}/${sessionId}`;
 }
 
-function getShareSiteHost(): string {
-  const origin =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : process.env.NEXT_PUBLIC_SITE_URL ?? "https://releaseorretain.live";
-
-  try {
-    return new URL(origin).hostname.replace(/^www\./, "");
-  } catch {
-    return "releaseorretain.live";
-  }
-}
-
 export function buildVerdictShareMessage(
   teamCode: string,
   results: VoteResult[],
@@ -50,9 +37,8 @@ export function buildVerdictShareMessage(
     displayName === DEFAULT_DISPLAY_NAME
       ? "My"
       : `${possessiveLabel(displayName)}`;
-  const site = getShareSiteHost();
 
-  return `${who} ${teamName} IPL 2026 picks: ${retained} retained, ${released} released · ${purse.freedDisplay} freed. See my squad and make your own — swipe release or retain on ${site}`;
+  return `${who} ${teamName} IPL 2026 picks: ${retained} retained, ${released} released · ${purse.freedDisplay} freed. See my squad and make your own picks.`;
 }
 
 export function buildVerdictSharePayload(
@@ -102,8 +88,7 @@ export function buildAppShareUrl(): string {
 }
 
 export function buildAppShareMessage(): string {
-  const site = getShareSiteHost();
-  return `Release or retain players from every IPL 2026 squad — make your picks on ${site}`;
+  return "Release or retain players from every IPL 2026 squad — make your picks.";
 }
 
 export function buildAppSharePayload(): { url: string; text: string; title: string } {

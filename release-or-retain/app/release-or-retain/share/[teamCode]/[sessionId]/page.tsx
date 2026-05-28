@@ -9,6 +9,7 @@ import { BackToTeamsLink, SubpageHeader } from "@/components/release-or-retain/S
 import { getPlayersByTeam } from "@/lib/players";
 import { possessiveLabel } from "@/lib/profile";
 import { getSharedVerdict, isValidSessionId } from "@/lib/share";
+import { useScrollToTop } from "@/lib/use-scroll-to-top";
 import { checkSuperFan } from "@/lib/session";
 import { TEAM_CODES, TEAM_NAMES } from "@/lib/team-config";
 import { VoteResult } from "@/types/player";
@@ -54,6 +55,8 @@ export default function SharedVerdictRoute({ params }: PageProps) {
       setLoading(false);
     });
   }, [sessionId, teamCode, isValidTeam]);
+
+  useScrollToTop(loading, notFound, results);
 
   if (loading) {
     return (

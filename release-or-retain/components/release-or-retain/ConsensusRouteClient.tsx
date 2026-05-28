@@ -9,6 +9,7 @@ import {
 } from "@/lib/session";
 import FanConsensusScreen from "./FanConsensusScreen";
 import ConsensusLocked from "./ConsensusLocked";
+import { useScrollToTop } from "@/lib/use-scroll-to-top";
 
 interface ConsensusRouteClientProps {
   teamCode: string;
@@ -29,6 +30,8 @@ export default function ConsensusRouteClient({
       setLoading(false);
     });
   }, [teamCode]);
+
+  useScrollToTop(loading, unlocked);
 
   if (loading) {
     return (

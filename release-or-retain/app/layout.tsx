@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { displayFont } from "@/lib/fonts";
 import TrackVisit from "@/components/TrackVisit";
+import ScrollToTop from "@/components/ScrollToTop";
 
 export const metadata: Metadata = {
   title: "Release or Retain | IPL 2026",
@@ -31,6 +32,7 @@ export default function RootLayout({
       <body className="overflow-x-hidden bg-transparent">
         <Suspense fallback={null}>
           <TrackVisit />
+          <ScrollToTop />
         </Suspense>
         {children}
       </body>
