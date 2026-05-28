@@ -363,7 +363,7 @@ function ConsensusTeamTile({
         <TeamLogo teamCode={teamCode} size={32} />
         {locked && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/55">
-            <LockIcon className="w-3.5 h-3.5 text-white/90" />
+            <LockIcon className="w-3.5 h-3.5 text-amber-300" />
           </div>
         )}
       </div>
