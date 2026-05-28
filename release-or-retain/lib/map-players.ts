@@ -149,6 +149,8 @@ export function mapScrapedPlayer(raw: ScrapedPlayer): Player {
     acquisitionType: mapAcquisitionType(raw),
     salarySource: raw.salary_source,
     salarySourceUrl: raw.salary_source_url,
+    retentionRoster: raw.retention_roster ?? false,
+    retentionNote: raw.retention_note ?? null,
   };
 }
 

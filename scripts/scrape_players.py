@@ -43,6 +43,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 IMAGES_DIR = DATA_DIR / "images"
 PLAYERS_JSON = DATA_DIR / "players.json"
+RETENTION_ADDITIONS_JSON = Path(__file__).resolve().parent / "retention_additions.json"
 
 
 def parse_jsonp(text: str) -> dict[str, Any]:
@@ -85,6 +86,49 @@ def infer_role(batting: dict[str, Any] | None, bowling: dict[str, Any] | None) -
         return "bowler"
     if bat_innings > 0 or bat_runs > 0:
         return "batter"
+    return "unknown"
+
+
+def normalize_profile_role(raw: str) -> str:
+    lowered = raw.lower().strip()
+    if "all" in lowered and "round" in lowered:
+        return "all-rounder"
+    if "bowl" in lowered:
+        return "bowler"
+    if "wicket" in lowered or "batt" in lowered:
+        return "batter"
+    return "unknown"
+
+
+def parse_role_from_profile(html: str) -> str | None:
+    match = re.search(
+        r"(Bowler|Batter|All Rounder|Wicketkeeper(?:[-\s]+Batter)?|"
+        r"Bowling All-rounder|Batting All-rounder)\s*[\s\S]{0,80}?Specialization",
+        html,
+        re.I,
+    )
+    if match:
+        role = normalize_profile_role(match.group(1))
+        return role if role != "unknown" else None
+
+    for label in ("Bowler", "Batter", "All Rounder"):
+        if re.search(rf">\s*{label}\s*<", html, re.I):
+            role = normalize_profile_role(label)
+            if role != "unknown":
+                return role
+    return None
+
+
+def resolve_role(
+    batting: dict[str, Any] | None,
+    bowling: dict[str, Any] | None,
+    profile_role: str | None,
+) -> str:
+    role = infer_role(batting, bowling)
+    if role != "unknown":
+        return role
+    if profile_role and profile_role != "unknown":
+        return profile_role
     return "unknown"
 
 
@@ -137,13 +181,14 @@ def parse_name_from_profile(html: str) -> str | None:
 
 def get_profile_data(
     session: requests.Session, slug: str, client_id: str, delay: float
-) -> tuple[str | None, str | None, str | None]:
+) -> tuple[str | None, str | None, str | None, str | None]:
     html = fetch_text(session, PROFILE_URL.format(slug=slug, client_id=client_id), delay)
     match = re.search(r"IPLHeadshot2026/(\d+)\.png", html)
     player_id = match.group(1) if match else None
     image_url = HEADSHOT_BASE.format(player_id=player_id) if player_id else None
     name = parse_name_from_profile(html)
-    return player_id, image_url, name
+    profile_role = parse_role_from_profile(html)
+    return player_id, image_url, name, profile_role
 
 
 def resolve_headshot(
@@ -152,19 +197,38 @@ def resolve_headshot(
     client_id: str,
     batting: dict[str, Any] | None,
     bowling: dict[str, Any] | None,
+    stats: dict[str, Any] | None,
     delay: float,
-) -> tuple[str | None, str | None, str | None]:
-    profile_player_id, image_url, profile_name = get_profile_data(
+) -> tuple[str | None, str | None, str | None, str | None]:
+    profile_player_id, image_url, profile_name, profile_role = get_profile_data(
         session, slug, client_id, delay
     )
     if profile_player_id and image_url:
-        return profile_player_id, image_url, profile_name
+        return profile_player_id, image_url, profile_name, profile_role
 
     for row in (batting, bowling):
         if row and row.get("PlayerId"):
             player_id = str(row["PlayerId"])
-            return player_id, HEADSHOT_BASE.format(player_id=player_id), None
-    return None, None, profile_name
+            return (
+                player_id,
+                HEADSHOT_BASE.format(player_id=player_id),
+                None,
+                profile_role,
+            )
+
+    if stats:
+        for key in ("Batting", "Bowling"):
+            for row in stats.get(key, []):
+                if row.get("ClientPlayerID") == client_id and row.get("PlayerId"):
+                    player_id = str(row["PlayerId"])
+                    return (
+                        player_id,
+                        HEADSHOT_BASE.format(player_id=player_id),
+                        None,
+                        profile_role,
+                    )
+
+    return None, None, profile_name, profile_role
 
 
 def build_stats_block(
@@ -223,14 +287,17 @@ def scrape_player(
     client_id: str,
     delay: float,
     download_images: bool,
+    *,
+    retention_roster: bool = False,
+    retention_note: str | None = None,
 ) -> dict[str, Any]:
     stats = get_stats(session, client_id, delay)
     batting = get_2026_row(stats, "Batting") if stats else None
     bowling = get_2026_row(stats, "Bowling") if stats else None
     has_2026_stats = batting is not None or bowling is not None
 
-    player_id, image_url, profile_name = resolve_headshot(
-        session, slug, client_id, batting, bowling, delay
+    player_id, image_url, profile_name, profile_role = resolve_headshot(
+        session, slug, client_id, batting, bowling, stats, delay
     )
 
     name = (
@@ -238,7 +305,7 @@ def scrape_player(
         or profile_name
         or slug_to_name(slug)
     )
-    role = infer_role(batting, bowling)
+    role = resolve_role(batting, bowling, profile_role)
     stats_2026 = build_stats_block(batting, bowling) if has_2026_stats else None
 
     image_local: str | None = None
@@ -249,7 +316,7 @@ def scrape_player(
         if image_downloaded:
             image_local = str(dest.relative_to(ROOT))
 
-    return {
+    player: dict[str, Any] = {
         "client_player_id": client_id,
         "player_id": player_id,
         "slug": slug,
@@ -264,6 +331,92 @@ def scrape_player(
         "image_local": image_local,
         "image_downloaded": image_downloaded,
         "profile_url": PROFILE_URL.format(slug=slug, client_id=client_id),
+    }
+    if retention_roster:
+        player["retention_roster"] = True
+        if retention_note:
+            player["retention_note"] = retention_note
+    return player
+
+
+def load_retention_additions() -> list[dict[str, str]]:
+    if not RETENTION_ADDITIONS_JSON.exists():
+        return []
+    payload = json.loads(RETENTION_ADDITIONS_JSON.read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        raise ValueError(f"{RETENTION_ADDITIONS_JSON} must contain a JSON array")
+    return payload
+
+
+def merge_retention_additions(
+    session: requests.Session,
+    players: list[dict[str, Any]],
+    team_filter: list[str] | None,
+    delay: float,
+    download_images: bool,
+    errors: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    additions = load_retention_additions()
+    if team_filter:
+        allowed = set(team_filter)
+        additions = [entry for entry in additions if entry["team_code"] in allowed]
+
+    existing_keys = {
+        (player["team_code"], player["client_player_id"]) for player in players
+    }
+
+    for index, entry in enumerate(additions, start=1):
+        team_code = entry["team_code"]
+        client_id = str(entry["client_player_id"])
+        slug = entry["slug"]
+        key = (team_code, client_id)
+        if key in existing_keys:
+            continue
+
+        print(f"  [retention {index}/{len(additions)}] {slug} ({client_id})")
+        try:
+            player = scrape_player(
+                session,
+                team_code,
+                slug,
+                client_id,
+                delay,
+                download_images,
+                retention_roster=True,
+                retention_note=entry.get("note"),
+            )
+            players.append(player)
+            existing_keys.add(key)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(
+                {
+                    "team": team_code,
+                    "slug": slug,
+                    "client_player_id": client_id,
+                    "error": str(exc),
+                    "source": "retention_additions",
+                }
+            )
+            print(f"    Error: {exc}", file=sys.stderr)
+
+    return players
+
+
+def merge_team_payload(
+    existing: dict[str, Any], fresh: dict[str, Any], team_codes: list[str]
+) -> dict[str, Any]:
+    allowed = set(team_codes)
+    kept = [
+        player
+        for player in existing.get("players", [])
+        if player.get("team_code") not in allowed
+    ]
+    merged_players = kept + fresh["players"]
+    return {
+        **fresh,
+        "players": merged_players,
+        "player_count": len(merged_players),
+        "teams": sorted({player["team_code"] for player in merged_players}),
     }
 
 
@@ -316,6 +469,15 @@ def scrape_all(
                 )
                 print(f"    Error: {exc}", file=sys.stderr)
 
+    players = merge_retention_additions(
+        session,
+        players,
+        list(selected.keys()) if team_filter else None,
+        delay,
+        download_images,
+        errors,
+    )
+
     return {
         "scraped_at": datetime.now(timezone.utc).isoformat(),
         "season": "2026",
@@ -363,6 +525,14 @@ def main() -> None:
         delay=args.delay,
         download_images=not args.no_images,
     )
+
+    if args.teams and args.output.exists():
+        existing = json.loads(args.output.read_text(encoding="utf-8"))
+        payload = merge_team_payload(existing, payload, args.teams)
+        print(
+            f"Merged {len(args.teams)} team(s) into existing dataset "
+            f"({payload['player_count']} players total)"
+        )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
 

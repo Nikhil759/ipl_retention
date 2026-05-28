@@ -45,6 +45,8 @@ export interface Player {
   acquisitionType: AcquisitionType | null;
   salarySource: string | null;
   salarySourceUrl: string | null;
+  retentionRoster?: boolean;
+  retentionNote?: string | null;
 }
 
 export interface VoteResult {

@@ -9,6 +9,7 @@ export type TeamVoteStatus = "not_started" | "in_progress" | "completed";
 export interface TeamStatusInfo {
   status: TeamVoteStatus;
   voteCount: number;
+  unvotedCount: number;
 }
 
 export interface StoredVote {
@@ -102,6 +103,22 @@ export function votesToResults(
     .filter((result): result is VoteResult => result !== null);
 }
 
+export function getUnvotedPlayersForTeam(
+  teamCode: string,
+  votedPlayerIds: Set<number>
+) {
+  return getPlayersByTeam(teamCode).filter((player) => !votedPlayerIds.has(player.id));
+}
+
+export async function getUnvotedPlayers(
+  sessionId: string,
+  teamCode: string
+) {
+  const votes = await getTeamVotes(sessionId, teamCode);
+  const votedIds = new Set(votes.map((vote) => vote.player_id));
+  return getUnvotedPlayersForTeam(teamCode, votedIds);
+}
+
 export async function getTeamStatus(
   sessionId: string,
   teamCode: string,
@@ -118,7 +135,7 @@ export async function getTeamStatus(
       .maybeSingle(),
     supabase
       .from("votes")
-      .select("player_id", { count: "exact", head: true })
+      .select("player_id")
       .eq("session_id", sessionId)
       .eq("team_code", teamCode),
   ]);
@@ -130,19 +147,23 @@ export async function getTeamStatus(
     console.error("Team vote count error:", votesResult.error.message);
   }
 
-  const voteCount = votesResult.count ?? 0;
+  const votedIds = new Set(
+    (votesResult.data ?? []).map((row) => row.player_id as number)
+  );
+  const voteCount = votedIds.size;
+  const unvotedCount = getUnvotedPlayersForTeam(teamCode, votedIds).length;
 
   if (sessionResult.data?.completed_at) {
-    return { status: "completed", voteCount };
+    return { status: "completed", voteCount, unvotedCount };
   }
   if (voteCount >= squadSize && squadSize > 0) {
-    return { status: "completed", voteCount };
+    return { status: "completed", voteCount, unvotedCount };
   }
   if (voteCount > 0) {
-    return { status: "in_progress", voteCount };
+    return { status: "in_progress", voteCount, unvotedCount };
   }
 
-  return { status: "not_started", voteCount };
+  return { status: "not_started", voteCount, unvotedCount: squadSize };
 }
 
 export async function getAllTeamStatuses(

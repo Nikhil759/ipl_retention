@@ -1,9 +1,9 @@
 "use client";
 
 import AppBackground from "@/components/release-or-retain/AppBackground";
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { VoteResult } from "@/types/player";
+import { Player, VoteResult } from "@/types/player";
 import { getPlayersByTeam } from "@/lib/players";
 import { TEAM_CODES, TEAM_NAMES } from "@/lib/team-config";
 import {
@@ -14,6 +14,7 @@ import {
   getOrCreateSessionId,
   getTeamStatus,
   getTeamVotes,
+  getUnvotedPlayersForTeam,
   isSuperFan,
   TeamStatusInfo,
   votesToResults,
@@ -23,26 +24,24 @@ import ResultsScreen from "@/components/release-or-retain/ResultsScreen";
 import TeamPicker from "@/components/release-or-retain/TeamPicker";
 import { BackToTeamsButton, SubpageHeader } from "@/components/release-or-retain/SubpageHeader";
 
-const SQUAD_SIZES = Object.fromEntries(
-  TEAM_CODES.map((code) => [code, getPlayersByTeam(code).length])
-);
+function squadSizesByTeam() {
+  return Object.fromEntries(
+    TEAM_CODES.map((code) => [code, getPlayersByTeam(code).length])
+  );
+}
 
 export default function ReleaseOrRetainClient() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [results, setResults] = useState<VoteResult[] | null>(null);
-  const [initialResults, setInitialResults] = useState<VoteResult[]>([]);
+  const [swipePlayers, setSwipePlayers] = useState<Player[]>([]);
   const [teamStatuses, setTeamStatuses] = useState<Record<string, TeamStatusInfo>>({});
   const [sessionReady, setSessionReady] = useState(false);
   const [loadingPicker, setLoadingPicker] = useState(true);
   const [loadingTeam, setLoadingTeam] = useState(false);
+  const [optionalVoteMode, setOptionalVoteMode] = useState(false);
   const sessionIdRef = useRef("");
   const searchParams = useSearchParams();
   const deepLinkHandled = useRef(false);
-
-  const players = useMemo(
-    () => (selectedTeam ? getPlayersByTeam(selectedTeam) : []),
-    [selectedTeam]
-  );
 
   const refreshTeamStatuses = useCallback(async () => {
     const sessionId = sessionIdRef.current || getOrCreateSessionId();
@@ -51,7 +50,7 @@ export default function ReleaseOrRetainClient() {
       const statuses = await getAllTeamStatuses(
         sessionId,
         TEAM_CODES as string[],
-        SQUAD_SIZES
+        squadSizesByTeam()
       );
       setTeamStatuses(statuses);
     } catch (error) {
@@ -65,36 +64,52 @@ export default function ReleaseOrRetainClient() {
     void refreshTeamStatuses();
   }, [refreshTeamStatuses]);
 
-  const handleTeamSelect = useCallback(async (teamCode: string) => {
-    setLoadingTeam(true);
-    setSelectedTeam(teamCode);
-    setResults(null);
-    setInitialResults([]);
-    setSessionReady(false);
-
+  const loadResultsFromDb = useCallback(async (teamCode: string) => {
     const sessionId = sessionIdRef.current || getOrCreateSessionId();
-    sessionIdRef.current = sessionId;
-
-    const squadSize = SQUAD_SIZES[teamCode] ?? 0;
-    const status = await getTeamStatus(sessionId, teamCode, squadSize);
-
-    if (status.status === "completed") {
-      const votes = await getTeamVotes(sessionId, teamCode);
-      setResults(votesToResults(votes, teamCode));
-      setLoadingTeam(false);
-      return;
-    }
-
-    await ensureSession(sessionId, teamCode);
-
-    if (status.status === "in_progress") {
-      const votes = await getTeamVotes(sessionId, teamCode);
-      setInitialResults(votesToResults(votes, teamCode));
-    }
-
-    setSessionReady(true);
-    setLoadingTeam(false);
+    const votes = await getTeamVotes(sessionId, teamCode);
+    return votesToResults(votes, teamCode);
   }, []);
+
+  const handleTeamSelect = useCallback(
+    async (teamCode: string) => {
+      setLoadingTeam(true);
+      setSelectedTeam(teamCode);
+      setResults(null);
+      setSwipePlayers([]);
+      setSessionReady(false);
+      setOptionalVoteMode(false);
+
+      const sessionId = sessionIdRef.current || getOrCreateSessionId();
+      sessionIdRef.current = sessionId;
+
+      const squadSize = getPlayersByTeam(teamCode).length;
+      const status = await getTeamStatus(sessionId, teamCode, squadSize);
+
+      if (status.status === "completed") {
+        setResults(await loadResultsFromDb(teamCode));
+        setLoadingTeam(false);
+        return;
+      }
+
+      await ensureSession(sessionId, teamCode);
+
+      const votes = await getTeamVotes(sessionId, teamCode);
+      const votedIds = new Set(votes.map((vote) => vote.player_id));
+      const remaining = getUnvotedPlayersForTeam(teamCode, votedIds);
+
+      if (remaining.length === 0) {
+        await completeTeamSession(sessionId, teamCode);
+        setResults(await loadResultsFromDb(teamCode));
+        setLoadingTeam(false);
+        return;
+      }
+
+      setSwipePlayers(remaining);
+      setSessionReady(true);
+      setLoadingTeam(false);
+    },
+    [loadResultsFromDb]
+  );
 
   useEffect(() => {
     if (deepLinkHandled.current || loadingPicker) return;
@@ -111,21 +126,51 @@ export default function ReleaseOrRetainClient() {
     void castVote(sessionIdRef.current, playerId, selectedTeam, decision);
   };
 
-  const handleComplete = (finalResults: VoteResult[]) => {
-    if (sessionIdRef.current && selectedTeam) {
-      void completeTeamSession(sessionIdRef.current, selectedTeam);
+  const handleComplete = async () => {
+    if (!selectedTeam || !sessionIdRef.current) return;
+
+    if (!optionalVoteMode) {
+      await completeTeamSession(sessionIdRef.current, selectedTeam);
     }
-    setResults(finalResults);
+
+    setResults(await loadResultsFromDb(selectedTeam));
+    setOptionalVoteMode(false);
     void refreshTeamStatuses();
   };
 
+  const handleStartOptionalVote = useCallback(async () => {
+    if (!selectedTeam) return;
+
+    const sessionId = sessionIdRef.current || getOrCreateSessionId();
+    sessionIdRef.current = sessionId;
+
+    const votes = await getTeamVotes(sessionId, selectedTeam);
+    const votedIds = new Set(votes.map((vote) => vote.player_id));
+    const unvoted = getUnvotedPlayersForTeam(selectedTeam, votedIds);
+
+    if (unvoted.length === 0) return;
+
+    setOptionalVoteMode(true);
+    setSwipePlayers(unvoted);
+    setResults(null);
+    setSessionReady(true);
+  }, [selectedTeam]);
+
   const handlePickAnotherTeam = () => {
     setResults(null);
-    setInitialResults([]);
+    setSwipePlayers([]);
     setSelectedTeam(null);
     setSessionReady(false);
+    setOptionalVoteMode(false);
     void refreshTeamStatuses();
   };
+
+  const unvotedCount =
+    selectedTeam && results
+      ? getPlayersByTeam(selectedTeam).filter(
+          (player) => !results.some((result) => result.player.id === player.id)
+        ).length
+      : 0;
 
   const onHome = !selectedTeam;
   const inGame = selectedTeam && !results;
@@ -137,7 +182,11 @@ export default function ReleaseOrRetainClient() {
       {selectedTeam && (
         <SubpageHeader
           title="Release or Retain"
-          subtitle="IPL 2026 · YOUR PICKS"
+          subtitle={
+            optionalVoteMode
+              ? "IPL 2026 · NEW ROSTER PLAYERS"
+              : "IPL 2026 · YOUR PICKS"
+          }
           accent={TEAM_NAMES[selectedTeam] ?? selectedTeam}
           back={<BackToTeamsButton onClick={handlePickAnotherTeam} />}
         />
@@ -175,18 +224,28 @@ export default function ReleaseOrRetainClient() {
             sessionId={sessionIdRef.current}
             onPickAnotherTeam={handlePickAnotherTeam}
             showSuperFan={isSuperFan(teamStatuses, TEAM_CODES.length)}
+            unvotedCount={unvotedCount}
+            onVoteNewPlayers={
+              unvotedCount > 0 ? handleStartOptionalVote : undefined
+            }
           />
-        ) : loadingTeam || !sessionReady ? (
+        ) : loadingTeam || !sessionReady || swipePlayers.length === 0 ? (
           <div className="flex flex-col items-center justify-center pt-24 md:pt-32 gap-3 min-h-[40dvh]">
             <div className="w-8 h-8 rounded-full border-2 border-gray-700 border-t-amber-500 animate-spin" />
             <p className="text-sm text-gray-400">Loading squad...</p>
           </div>
         ) : (
           <SwipeGame
-            players={players}
-            initialResults={initialResults}
+            players={swipePlayers}
             onVote={handleVote}
-            onComplete={handleComplete}
+            onComplete={() => void handleComplete()}
+            deckLabel={
+              optionalVoteMode
+                ? `${swipePlayers.length} new ${
+                    swipePlayers.length === 1 ? "player" : "players"
+                  } added to the roster`
+                : undefined
+            }
           />
         )}
       </div>

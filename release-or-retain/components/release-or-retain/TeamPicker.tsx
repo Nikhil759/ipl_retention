@@ -17,15 +17,68 @@ interface TeamPickerProps {
   loading?: boolean;
 }
 
-function statusLabel(status: TeamStatusInfo["status"], voteCount: number, squadSize: number) {
+function statusLabel(
+  status: TeamStatusInfo["status"],
+  voteCount: number,
+  squadSize: number,
+  unvotedCount: number
+) {
   switch (status) {
     case "completed":
+      if (unvotedCount > 0) {
+        return `Voted · ${unvotedCount} new ${
+          unvotedCount === 1 ? "player" : "players"
+        } to review`;
+      }
       return "Voted · view results";
     case "in_progress":
       return `In progress · ${voteCount}/${squadSize}`;
     default:
       return `${squadSize} players · IPL 2026 squad`;
   }
+}
+
+function statusBadges(
+  status: TeamStatusInfo["status"],
+  unvotedCount: number,
+  teamColor: string
+) {
+  if (status === "completed" && unvotedCount > 0) {
+    return (
+      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+        <span
+          className="text-xs font-bold px-3 py-1 rounded-full"
+          style={{
+            backgroundColor: "rgba(34, 197, 94, 0.2)",
+            color: "#22C55E",
+          }}
+        >
+          Done ✓
+        </span>
+        <span
+          className="text-[10px] font-semibold px-2 py-0.5 rounded-full text-amber-300"
+          style={{ backgroundColor: "rgba(251, 191, 36, 0.15)" }}
+        >
+          +{unvotedCount} new
+        </span>
+      </div>
+    );
+  }
+
+  const single = statusBadge(status);
+  if (single) return single;
+
+  return (
+    <div
+      className="flex-shrink-0 flex items-center justify-center"
+      style={{
+        color: teamColor,
+        fontSize: "20px",
+      }}
+    >
+      →
+    </div>
+  );
 }
 
 function statusBadge(status: TeamStatusInfo["status"]) {
@@ -126,6 +179,7 @@ export default function TeamPicker({
               const teamStatus = teamStatuses[code] ?? {
                 status: "not_started" as const,
                 voteCount: 0,
+                unvotedCount: squadSize,
               };
               const teamColor = TEAM_COLORS[code];
               const isAnimating = animatingIndices.has(index);
@@ -180,21 +234,22 @@ export default function TeamPicker({
                         {TEAM_NAMES[code]}
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
-                        {statusLabel(teamStatus.status, teamStatus.voteCount, squadSize)}
+                        {statusLabel(
+                          teamStatus.status,
+                          teamStatus.voteCount,
+                          squadSize,
+                          teamStatus.unvotedCount
+                        )}
                       </p>
                     </div>
 
-                    {statusBadge(teamStatus.status) ?? (
-                      <div
-                        className="flex-shrink-0 flex items-center justify-center"
-                        style={{
-                          color: teamColor.primary,
-                          fontSize: "20px",
-                        }}
-                      >
-                        →
-                      </div>
-                    )}
+                    <div className="flex-shrink-0">
+                      {statusBadges(
+                        teamStatus.status,
+                        teamStatus.unvotedCount,
+                        teamColor.primary
+                      )}
+                    </div>
                   </div>
                 </button>
               );

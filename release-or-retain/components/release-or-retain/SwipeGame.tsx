@@ -17,7 +17,8 @@ interface DragState {
   active: boolean;
 }
 
-function cardBaseHeight(player: Player): number {
+function cardBaseHeight(player: Player | undefined): number {
+  if (!player) return CARD_BASE_HEIGHT;
   return player.type === "all" ? CARD_ALLROUNDER_HEIGHT : CARD_BASE_HEIGHT;
 }
 
@@ -185,10 +186,10 @@ interface ExitCardState {
 interface SwipeGameProps {
   players: Player[];
   initialResults?: VoteResult[];
-  /** Called on each swipe — use this to write the vote to Supabase */
-  onVote?: (playerId: number, decision: "retain" | "release") => void;
-  /** Called when all players have been swiped */
+  /** Called when all players in this deck have been swiped */
   onComplete?: (results: VoteResult[]) => void;
+  onVote?: (playerId: number, decision: "retain" | "release") => void;
+  deckLabel?: string;
 }
 
 export default function SwipeGame({
@@ -196,6 +197,7 @@ export default function SwipeGame({
   initialResults = [],
   onVote,
   onComplete,
+  deckLabel,
 }: SwipeGameProps) {
   const [currentIdx, setCurrentIdx] = useState(initialResults.length);
   const [results, setResults] = useState<VoteResult[]>(initialResults);
@@ -371,6 +373,8 @@ export default function SwipeGame({
 
   // ── render ────────────────────────────────────────────────────────────────
 
+  if (!currentPlayer || players.length === 0) return null;
+
   const layoutPlayer = activePlayer ?? currentPlayer;
   const baseHeight = cardBaseHeight(layoutPlayer);
   const widthScale = cardWidth / CARD_BASE_WIDTH;
@@ -383,10 +387,13 @@ export default function SwipeGame({
   const scaledWidth = CARD_BASE_WIDTH * cardScale;
   const scaledHeight = baseHeight * cardScale;
 
-  if (!currentPlayer) return null;
-
   return (
     <div className="flex flex-col items-center w-full pb-4 md:pb-10 pt-1 md:pt-2">
+      {deckLabel && (
+        <p className="text-xs md:text-sm text-amber-300/90 text-center mb-4 md:mb-6 max-w-sm px-2">
+          {deckLabel}
+        </p>
+      )}
 
       {/* Counters */}
       <div className="flex justify-between items-center w-full max-w-xs md:max-w-2xl mb-5 md:mb-10 px-2 md:px-0">

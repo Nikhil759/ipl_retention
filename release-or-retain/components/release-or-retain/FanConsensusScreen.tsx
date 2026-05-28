@@ -75,6 +75,11 @@ function ConsensusBar({
   );
 }
 
+function retentionVoteNote(player: Player): string | null {
+  if (!player.retentionRoster) return null;
+  return "* Added later — vote count may be lower";
+}
+
 function PlayerConsensusRow({
   player,
   stat,
@@ -86,6 +91,7 @@ function PlayerConsensusRow({
   const hasVotes = (stat?.total_votes ?? 0) > 0;
   const retainPct = stat?.retain_pct ?? 0;
   const releasePct = stat?.release_pct ?? 0;
+  const rosterNote = retentionVoteNote(player);
 
   return (
     <div className="flex flex-col gap-2.5 p-3 md:p-4 rounded-xl border border-white/10 bg-white/5">
@@ -124,21 +130,28 @@ function PlayerConsensusRow({
         hasVotes={hasVotes}
       />
 
-      <div className="flex items-center justify-between text-[11px] md:text-xs">
-        {hasVotes ? (
-          <>
-            <span className="text-green-400 font-medium tabular-nums">
-              {retainPct}% retain
-            </span>
-            <span className="text-gray-500 tabular-nums">
-              {stat!.total_votes.toLocaleString()} votes
-            </span>
-            <span className="text-red-400 font-medium tabular-nums">
-              {releasePct}% release
-            </span>
-          </>
-        ) : (
-          <span className="text-gray-500">No fan votes yet</span>
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between text-[11px] md:text-xs">
+          {hasVotes ? (
+            <>
+              <span className="text-green-400 font-medium tabular-nums">
+                {retainPct}% retain
+              </span>
+              <span className="text-gray-500 tabular-nums">
+                {stat!.total_votes.toLocaleString()} votes
+              </span>
+              <span className="text-red-400 font-medium tabular-nums">
+                {releasePct}% release
+              </span>
+            </>
+          ) : (
+            <span className="text-gray-500">No fan votes yet</span>
+          )}
+        </div>
+        {rosterNote && (
+          <p className="text-[10px] md:text-[11px] text-gray-500 leading-snug">
+            {rosterNote}
+          </p>
         )}
       </div>
     </div>

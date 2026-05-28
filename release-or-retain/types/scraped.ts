@@ -45,6 +45,8 @@ export interface ScrapedPlayer {
   salary_source_url: string | null;
   acquisition_type: string | null;
   salary_matched_name: string | null;
+  retention_roster?: boolean;
+  retention_note?: string;
 }
 
 export interface ScrapedPlayersFile {

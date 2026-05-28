@@ -199,6 +199,9 @@ export default function PlayerCard({
             {!player.has2026Stats && (
               <span className="text-neutral-400">&nbsp;&nbsp;·&nbsp;&nbsp;No 2026 appearances</span>
             )}
+            {player.retentionNote && (
+              <span className="text-neutral-400">&nbsp;&nbsp;·&nbsp;&nbsp;{player.retentionNote}</span>
+            )}
           </p>
         </div>
 

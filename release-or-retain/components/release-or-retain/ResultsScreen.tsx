@@ -30,6 +30,8 @@ interface ResultsScreenProps {
   viewer?: "owner" | "guest";
   sharerName?: string;
   showSuperFan?: boolean;
+  unvotedCount?: number;
+  onVoteNewPlayers?: () => void;
 }
 
 function communityLine(
@@ -64,6 +66,8 @@ export default function ResultsScreen({
   viewer = "owner",
   sharerName,
   showSuperFan = false,
+  unvotedCount = 0,
+  onVoteNewPlayers,
 }: ResultsScreenProps) {
   const isGuest = viewer === "guest";
   const [communityStats, setCommunityStats] = useState<
@@ -80,6 +84,7 @@ export default function ResultsScreen({
   const purse = computePurseSummary(results);
   const teamName = TEAM_NAMES[teamCode] ?? teamCode;
   const teamColor = TEAM_COLORS[teamCode]?.primary ?? "#1a1a1a";
+  const squadSize = getPlayersByTeam(teamCode).length;
 
   useEffect(() => {
     void getCommunityStats(teamCode).then(setCommunityStats);
@@ -163,6 +168,36 @@ export default function ResultsScreen({
   return (
     <div className="flex flex-col items-center w-full pb-12 md:pb-16">
 
+      {!isGuest && unvotedCount > 0 && onVoteNewPlayers && (
+        <div className="w-full mb-6 md:mb-8 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3.5 md:px-5 md:py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <span
+              className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-sm font-bold"
+              aria-hidden
+            >
+              !
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm md:text-base font-medium text-amber-100">
+                {unvotedCount} new {unvotedCount === 1 ? "player" : "players"}{" "}
+                added to the roster
+              </p>
+              <p className="text-xs md:text-sm text-amber-200/70 mt-0.5">
+                Your original picks are saved. You can optionally vote on the
+                new additions.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onVoteNewPlayers}
+            className="flex-shrink-0 w-full sm:w-auto px-4 py-2.5 rounded-lg bg-amber-500/25 border border-amber-500/40 text-sm font-medium text-amber-100 hover:bg-amber-500/35 transition-colors"
+          >
+            Vote on {unvotedCount === 1 ? "them" : "new players"}
+          </button>
+        </div>
+      )}
+
       {/* Title */}
       <div className="text-center mb-6 md:mb-10">
         {!(isGuest && sharerName) && (
@@ -173,7 +208,10 @@ export default function ResultsScreen({
           </h1>
         )}
         <p className={`text-sm md:text-base text-gray-400 ${isGuest && sharerName ? "" : "mt-1 md:mt-2"}`}>
-          {teamName} · {results.length} players reviewed
+          {teamName} · {results.length}
+          {results.length < squadSize
+            ? ` of ${squadSize} players reviewed`
+            : " players reviewed"}
         </p>
         {showSuperFan && (
           <div className="mt-3 flex justify-center">
