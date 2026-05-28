@@ -28,6 +28,51 @@ export function consensusDecision(retainPct: number): "retain" | "release" {
   return retainPct >= 50 ? "retain" : "release";
 }
 
+/** Completed fans who voted on this squad (max per-player vote count). */
+export function getTeamFanVoteCount(
+  statsByPlayerId: Record<number, { total_votes: number }>
+): number {
+  let max = 0;
+  for (const stat of Object.values(statsByPlayerId)) {
+    if (stat.total_votes > max) max = stat.total_votes;
+  }
+  return max;
+}
+
+export function formatFanVoteCount(count: number): string {
+  if (count === 0) return "No fan votes yet";
+  if (count === 1) return "1 fan voted";
+  return `${count.toLocaleString()} fans voted`;
+}
+
+export function formatFanVoteCountShort(count: number): string | null {
+  if (count <= 0) return null;
+  return count.toLocaleString();
+}
+
+/** Max completed-fan votes per team (one query for the home screen). */
+export async function getAllTeamsFanVoteCounts(): Promise<Record<string, number>> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("player_vote_summary")
+    .select("team_code, total_votes");
+
+  if (error) {
+    console.error("All teams fan vote counts error:", error.message);
+    return {};
+  }
+
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    const teamCode = row.team_code as string;
+    const votes = row.total_votes ?? 0;
+    if (votes > (counts[teamCode] ?? 0)) {
+      counts[teamCode] = votes;
+    }
+  }
+  return counts;
+}
+
 export async function getTeamCommunityStats(
   teamCode: string
 ): Promise<PlayerCommunityStat[]> {

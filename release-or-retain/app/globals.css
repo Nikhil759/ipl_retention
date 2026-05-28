@@ -12,3 +12,116 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
   -webkit-tap-highlight-color: transparent;
 }
+
+@keyframes live-fan-glow {
+  0%,
+  100% {
+    border-color: rgb(245 158 11 / 0.35);
+    box-shadow: 0 0 0 0 rgb(245 158 11 / 0);
+  }
+  50% {
+    border-color: rgb(245 158 11 / 0.62);
+    box-shadow: 0 0 14px 0 rgb(245 158 11 / 0.12);
+  }
+}
+
+@keyframes live-fan-shimmer {
+  0%,
+  72% {
+    transform: translateX(-130%);
+    opacity: 0;
+  }
+  82% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: translateX(130%);
+    opacity: 0;
+  }
+}
+
+.live-fan-vote-btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  animation: live-fan-glow 2.8s ease-in-out infinite;
+}
+
+.live-fan-vote-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    rgb(255 255 255 / 0.1) 50%,
+    transparent 62%
+  );
+  animation: live-fan-shimmer 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.live-fan-vote-btn:hover,
+.live-fan-vote-btn:focus-visible {
+  animation: none;
+  box-shadow: 0 0 16px 0 rgb(245 158 11 / 0.18);
+}
+
+.live-fan-vote-btn:hover::after,
+.live-fan-vote-btn:focus-visible::after {
+  animation: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-fan-vote-btn {
+    animation: none;
+  }
+
+  .live-fan-vote-btn::after {
+    display: none;
+  }
+}
+
+/* Scrollable player lists */
+.player-scroll-list {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: y proximity;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.14) transparent;
+}
+
+.player-scroll-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.player-scroll-list::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.12);
+  border-radius: 999px;
+}
+
+.player-scroll-list::-webkit-scrollbar-thumb:hover {
+  background: rgb(255 255 255 / 0.2);
+}
+
+.player-list-row {
+  scroll-snap-align: start;
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 0.04);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.06),
+    0 1px 2px rgb(0 0 0 / 0.12);
+  transition: background-color 0.15s ease;
+}
+
+.player-list-row:hover {
+  background: rgb(255 255 255 / 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-scroll-list {
+    scroll-snap-type: none;
+  }
+}

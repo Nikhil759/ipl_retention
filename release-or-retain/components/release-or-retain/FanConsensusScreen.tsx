@@ -10,6 +10,7 @@ import {
   TeamConsensusData,
 } from "@/lib/consensus";
 import PlayerPhoto from "./PlayerPhoto";
+import PlayerScrollList, { PLAYER_LIST_ROW_CLASS } from "./PlayerScrollList";
 
 interface FanConsensusScreenProps {
   teamCode: string;
@@ -58,11 +59,13 @@ function ConsensusBar({
   hasVotes: boolean;
 }) {
   if (!hasVotes) {
-    return <div className="h-2 rounded-full bg-white/10" />;
+    return (
+      <div className="h-2 md:h-2.5 rounded-full bg-white/[0.04] ring-1 ring-inset ring-white/[0.06]" />
+    );
   }
 
   return (
-    <div className="flex h-2 md:h-2.5 rounded-full overflow-hidden bg-white/10">
+    <div className="flex h-2 md:h-2.5 rounded-full overflow-hidden bg-white/[0.04] ring-1 ring-inset ring-white/[0.06]">
       <div
         className="h-full bg-green-500 transition-all"
         style={{ width: `${retainPct}%` }}
@@ -94,7 +97,7 @@ function PlayerConsensusRow({
   const rosterNote = retentionVoteNote(player);
 
   return (
-    <div className="flex flex-col gap-2.5 p-3 md:p-4 rounded-xl border border-white/10 bg-white/5">
+    <div className={`${PLAYER_LIST_ROW_CLASS} flex flex-col gap-2.5 p-3 md:p-4`}>
       <div className="flex items-center gap-3">
         <div
           className="w-1 self-stretch rounded-full flex-shrink-0 min-h-[44px]"
@@ -272,11 +275,11 @@ export default function FanConsensusScreen({ teamCode }: FanConsensusScreenProps
             </button>
           ))}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3 max-h-[520px] md:max-h-[640px] overflow-y-auto pr-0.5">
+        <PlayerScrollList maxHeightClass="max-h-[520px] md:max-h-[640px]">
           {sortedPlayers.map(({ player, stat }) => (
             <PlayerConsensusRow key={player.id} player={player} stat={stat} />
           ))}
-        </div>
+        </PlayerScrollList>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 w-full sm:justify-center">

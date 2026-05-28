@@ -15,7 +15,10 @@ import {
 import PlayerPhoto from "./PlayerPhoto";
 import ShareVerdictButton from "./ShareVerdictButton";
 import SuperFanBadge from "./SuperFanBadge";
+import LiveFanVoteLink from "./LiveFanVoteLink";
+import PlayerScrollList, { PLAYER_LIST_ROW_CLASS } from "./PlayerScrollList";
 import { verdictTitle } from "@/lib/profile";
+import { getTeamFanVoteCount } from "@/lib/consensus";
 
 interface CommunityStat {
   retain_pct: number;
@@ -85,6 +88,7 @@ export default function ResultsScreen({
   const teamName = TEAM_NAMES[teamCode] ?? teamCode;
   const teamColor = TEAM_COLORS[teamCode]?.primary ?? "#1a1a1a";
   const squadSize = getPlayersByTeam(teamCode).length;
+  const fanVoteCount = getTeamFanVoteCount(communityStats);
 
   useEffect(() => {
     void getCommunityStats(teamCode).then(setCommunityStats);
@@ -113,7 +117,7 @@ export default function ResultsScreen({
     return (
       <div
         key={player.id}
-        className="flex items-center gap-3 p-3 md:p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/[0.07] transition-colors"
+        className={`${PLAYER_LIST_ROW_CLASS} flex items-center gap-3 p-3 md:p-4`}
       >
         <div
           className="w-1 self-stretch rounded-full flex-shrink-0"
@@ -199,7 +203,7 @@ export default function ResultsScreen({
       )}
 
       {/* Title */}
-      <div className="text-center mb-6 md:mb-10">
+      <div className="w-full text-center mb-6 md:mb-10">
         {!(isGuest && sharerName) && (
           <h1 className="text-2xl md:text-3xl font-semibold text-white">
             {isGuest && sharerName
@@ -219,62 +223,53 @@ export default function ResultsScreen({
           </div>
         )}
         {!isGuest && sessionId && (
-          <div className="mt-4 flex flex-wrap justify-center gap-2 md:gap-3">
+          <div className="mt-4 w-full grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
             <ShareVerdictButton
               sessionId={sessionId}
               teamCode={teamCode}
               results={results}
             />
-            <Link
+            <LiveFanVoteLink
               href={`/release-or-retain/consensus/${teamCode}`}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-sm font-medium text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 transition-colors touch-manipulation"
-            >
-              See live fan vote
-            </Link>
+              fanVoteCount={fanVoteCount}
+            />
           </div>
         )}
         {isGuest && (
-          <div className="mt-4 flex flex-wrap justify-center gap-2 md:gap-3">
+          <div className="mt-4 w-full grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
             <Link
               href={`/release-or-retain?team=${teamCode}`}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-sm font-medium text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 transition-colors touch-manipulation"
+              className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-sm font-medium text-amber-300 hover:bg-amber-500/25 hover:text-amber-200 transition-colors touch-manipulation"
             >
               Make your picks
             </Link>
             {consensusUnlocked ? (
-              <Link
+              <LiveFanVoteLink
                 href={`/release-or-retain/consensus/${teamCode}?ref=${sessionId ?? ""}&name=${encodeURIComponent(sharerName ?? "")}`}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 bg-white/10 text-sm font-medium text-gray-200 hover:bg-white/15 hover:text-white transition-colors touch-manipulation"
-              >
-                See live fan vote
-              </Link>
+                fanVoteCount={fanVoteCount}
+              />
             ) : (
-              <span
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/[0.03] text-sm font-medium text-gray-500 cursor-not-allowed"
-                title="Vote on this squad to unlock live fan vote"
-              >
-                🔒 See live fan vote
-              </span>
+              <LiveFanVoteLink fanVoteCount={fanVoteCount} locked />
             )}
           </div>
         )}
       </div>
 
-      {/* Summary pills */}
-      <div className="grid w-full gap-3 mb-5 md:mb-6 md:grid-cols-2">
+      {/* Summary pills — retained & released on one line */}
+      <div className="grid w-full grid-cols-2 gap-2 mb-3 md:mb-4">
         <button
           type="button"
           onClick={() => setActiveTab("retain")}
-          className={`rounded-xl py-2.5 md:py-3 px-3 text-center transition-all ${
+          className={`min-w-0 rounded-xl py-2 px-3 text-center transition-all ${
             activeTab === "retain"
               ? "bg-green-500/20 ring-2 ring-green-500/60"
               : "bg-green-500/10 hover:bg-green-500/15"
           }`}
         >
-          <p className="text-2xl md:text-3xl font-semibold text-green-400 tabular-nums leading-none">
+          <p className="text-xl md:text-2xl font-semibold text-green-400 tabular-nums leading-none">
             {retained.length}
           </p>
-          <p className="text-[10px] md:text-xs text-green-500/80 tracking-widest mt-1">
+          <p className="text-[10px] text-green-500/80 tracking-widest mt-0.5">
             RETAINED
           </p>
         </button>
@@ -283,16 +278,16 @@ export default function ResultsScreen({
           type="button"
           onClick={() => setActiveTab("release")}
           disabled={released.length === 0}
-          className={`rounded-xl py-2.5 md:py-3 px-3 text-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+          className={`min-w-0 rounded-xl py-2 px-3 text-center transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
             activeTab === "release"
               ? "bg-red-500/20 ring-2 ring-red-500/60"
               : "bg-red-500/10 hover:bg-red-500/15"
           }`}
         >
-          <p className="text-2xl md:text-3xl font-semibold text-red-400 tabular-nums leading-none">
+          <p className="text-xl md:text-2xl font-semibold text-red-400 tabular-nums leading-none">
             {released.length}
           </p>
-          <p className="text-[10px] md:text-xs text-red-400/80 tracking-widest mt-1">
+          <p className="text-[10px] text-red-400/80 tracking-widest mt-0.5">
             RELEASED
           </p>
         </button>
@@ -377,9 +372,9 @@ export default function ResultsScreen({
               : "No players retained."}
           </p>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3 max-h-[490px] md:max-h-[480px] lg:max-h-[560px] overflow-y-auto pr-0.5">
+          <PlayerScrollList maxHeightClass="max-h-[490px] md:max-h-[480px] lg:max-h-[560px]">
             {activeList.map((result) => renderPlayerRow(result))}
-          </div>
+          </PlayerScrollList>
         )}
       </div>
 

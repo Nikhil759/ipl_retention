@@ -12,6 +12,7 @@ interface ShareVerdictButtonProps {
   teamCode: string;
   results: VoteResult[];
   className?: string;
+  buttonClassName?: string;
 }
 
 type ShareAction = "share" | "copy";
@@ -21,6 +22,7 @@ export default function ShareVerdictButton({
   teamCode,
   results,
   className = "",
+  buttonClassName = "",
 }: ShareVerdictButtonProps) {
   const [shareStatus, setShareStatus] = useState<
     "idle" | "copied" | "shared" | "error"
@@ -102,12 +104,14 @@ export default function ShareVerdictButton({
         ? "Couldn't copy"
         : "Copy link";
 
+  const actionButtonClass = `inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors touch-manipulation w-full ${buttonClassName}`;
+
   return (
     <>
       <button
         type="button"
         onClick={() => void handleActionClick("share")}
-        className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-sky-500/40 bg-sky-500/15 text-sm font-medium text-sky-300 hover:bg-sky-500/25 hover:text-sky-200 transition-colors touch-manipulation ${className}`}
+        className={`${actionButtonClass} border-sky-500/40 bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 hover:text-sky-200 ${className}`}
       >
         <span aria-hidden>{shareStatus === "idle" ? "↗" : "✓"}</span>
         {shareLabel}
@@ -116,7 +120,7 @@ export default function ShareVerdictButton({
       <button
         type="button"
         onClick={() => void handleActionClick("copy")}
-        className="hidden md:inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 bg-white/10 text-sm font-medium text-gray-200 hover:bg-white/15 hover:text-white transition-colors touch-manipulation"
+        className={`${actionButtonClass} max-md:hidden border-white/20 bg-white/10 text-gray-200 hover:bg-white/15 hover:text-white md:inline-flex`}
       >
         <span aria-hidden>{copyStatus === "idle" ? "⎘" : "✓"}</span>
         {copyLabel}

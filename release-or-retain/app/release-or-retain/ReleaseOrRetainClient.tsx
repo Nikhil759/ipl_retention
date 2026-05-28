@@ -23,6 +23,7 @@ import SwipeGame from "@/components/release-or-retain/SwipeGame";
 import ResultsScreen from "@/components/release-or-retain/ResultsScreen";
 import TeamPicker from "@/components/release-or-retain/TeamPicker";
 import { BackToTeamsButton, SubpageHeader } from "@/components/release-or-retain/SubpageHeader";
+import { getAllTeamsFanVoteCounts } from "@/lib/consensus";
 
 function squadSizesByTeam() {
   return Object.fromEntries(
@@ -35,6 +36,7 @@ export default function ReleaseOrRetainClient() {
   const [results, setResults] = useState<VoteResult[] | null>(null);
   const [swipePlayers, setSwipePlayers] = useState<Player[]>([]);
   const [teamStatuses, setTeamStatuses] = useState<Record<string, TeamStatusInfo>>({});
+  const [fanVoteCounts, setFanVoteCounts] = useState<Record<string, number>>({});
   const [sessionReady, setSessionReady] = useState(false);
   const [loadingPicker, setLoadingPicker] = useState(true);
   const [loadingTeam, setLoadingTeam] = useState(false);
@@ -47,12 +49,16 @@ export default function ReleaseOrRetainClient() {
     const sessionId = sessionIdRef.current || getOrCreateSessionId();
     sessionIdRef.current = sessionId;
     try {
-      const statuses = await getAllTeamStatuses(
-        sessionId,
-        TEAM_CODES as string[],
-        squadSizesByTeam()
-      );
+      const [statuses, counts] = await Promise.all([
+        getAllTeamStatuses(
+          sessionId,
+          TEAM_CODES as string[],
+          squadSizesByTeam()
+        ),
+        getAllTeamsFanVoteCounts(),
+      ]);
       setTeamStatuses(statuses);
+      setFanVoteCounts(counts);
     } catch (error) {
       console.error("Failed to load team statuses:", error);
     } finally {
@@ -213,6 +219,7 @@ export default function ReleaseOrRetainClient() {
           ) : (
             <TeamPicker
               teamStatuses={teamStatuses}
+              fanVoteCounts={fanVoteCounts}
               onSelect={handleTeamSelect}
               loading={loadingTeam}
             />

@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 
 interface TeamPickerProps {
   teamStatuses: Record<string, TeamStatusInfo>;
+  fanVoteCounts?: Record<string, number>;
   onSelect: (teamCode: string) => void;
   loading?: boolean;
 }
@@ -113,6 +114,7 @@ function statusBadge(status: TeamStatusInfo["status"]) {
 
 export default function TeamPicker({
   teamStatuses,
+  fanVoteCounts = {},
   onSelect,
   loading = false,
 }: TeamPickerProps) {
@@ -285,7 +287,11 @@ export default function TeamPicker({
                       className={`${tileClassName} border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20`}
                       style={tileStyle}
                     >
-                      <ConsensusTeamTile teamCode={code} teamColor={teamColor.primary} />
+                      <ConsensusTeamTile
+                        teamCode={code}
+                        teamColor={teamColor.primary}
+                        fanVoteCount={fanVoteCounts[code] ?? 0}
+                      />
                     </Link>
                   );
                 }
@@ -295,13 +301,14 @@ export default function TeamPicker({
                     key={code}
                     type="button"
                     onClick={() => setLockedTeamModal(code)}
-                    className={`${tileClassName} border-amber-500/20 bg-white/[0.02] hover:bg-amber-500/[0.06] hover:border-amber-500/35 cursor-pointer text-left`}
+                    className={`${tileClassName} border-white/10 bg-white/[0.02] hover:bg-white/[0.06] hover:border-white/20 cursor-pointer text-left`}
                     style={tileStyle}
                     aria-label={`${TEAM_NAMES[code]} live fan vote locked — vote to unlock`}
                   >
                     <ConsensusTeamTile
                       teamCode={code}
                       teamColor={teamColor.primary}
+                      fanVoteCount={fanVoteCounts[code] ?? 0}
                       locked
                     />
                   </button>
@@ -324,13 +331,27 @@ export default function TeamPicker({
   );
 }
 
+function consensusTileSubtitle(
+  fanVoteCount: number,
+  locked: boolean,
+  teamCode: string
+): string {
+  if (fanVoteCount > 0) {
+    return `${fanVoteCount.toLocaleString()} fan${fanVoteCount === 1 ? "" : "s"} voted`;
+  }
+  if (locked) return "Vote to unlock";
+  return TEAM_NAMES[teamCode].split(" ").slice(-1)[0] ?? teamCode;
+}
+
 function ConsensusTeamTile({
   teamCode,
   teamColor,
+  fanVoteCount = 0,
   locked = false,
 }: {
   teamCode: string;
   teamColor: string;
+  fanVoteCount?: number;
   locked?: boolean;
 }) {
   return (
@@ -346,7 +367,7 @@ function ConsensusTeamTile({
         <TeamLogo teamCode={teamCode} size={32} />
         {locked && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/55">
-            <LockIcon className="w-3.5 h-3.5 text-amber-300/95" />
+            <LockIcon className="w-3.5 h-3.5 text-white/90" />
           </div>
         )}
       </div>
@@ -358,12 +379,8 @@ function ConsensusTeamTile({
         >
           {teamCode}
         </p>
-        <p
-          className={`text-[10px] truncate hidden sm:block ${
-            locked ? "text-amber-400/80 font-medium" : "text-gray-500"
-          }`}
-        >
-          {locked ? "Vote to unlock" : TEAM_NAMES[teamCode].split(" ").slice(-1)[0]}
+        <p className="text-[10px] truncate leading-tight text-gray-400">
+          {consensusTileSubtitle(fanVoteCount, locked, teamCode)}
         </p>
       </div>
     </>
