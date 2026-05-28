@@ -7,6 +7,9 @@ import { VoteResult } from "@/types/player";
 
 export type ShareOutcome = "copied" | "shared" | "error";
 
+/** Analytics key for home-page app shares (not a real team). */
+export const APP_SHARE_TEAM_CODE = "app";
+
 export interface SharedVerdictData {
   results: VoteResult[];
   displayName: string;
@@ -86,6 +89,48 @@ export async function copyVerdictLink(
     return false;
   } catch {
     return false;
+  }
+}
+
+export function buildAppShareUrl(): string {
+  const origin =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : process.env.NEXT_PUBLIC_SITE_URL ?? "https://releaseorretain.live";
+
+  return origin.replace(/\/$/, "");
+}
+
+export function buildAppShareMessage(): string {
+  const site = getShareSiteHost();
+  return `Release or retain players from every IPL 2026 squad — make your picks on ${site}`;
+}
+
+export function buildAppSharePayload(): { url: string; text: string; title: string } {
+  const url = buildAppShareUrl();
+  const text = buildAppShareMessage();
+  const title = "Release or Retain · IPL 2026";
+  return { url, text, title };
+}
+
+export async function shareApp(): Promise<ShareOutcome> {
+  const { url, text, title } = buildAppSharePayload();
+
+  try {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      await navigator.share({ title, text, url });
+      return "shared";
+    }
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      return "copied";
+    }
+    return "error";
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return "shared";
+    }
+    return "error";
   }
 }
 

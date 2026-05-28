@@ -6,6 +6,7 @@ import { getPlayersByTeam } from "@/lib/players";
 import { TeamStatusInfo, hasUnlockedConsensus } from "@/lib/session";
 import TeamLogo from "./TeamLogo";
 import AppBackground from "./AppBackground";
+import ShareAppButton from "./ShareAppButton";
 import VotingProgress from "./VotingProgress";
 import VoteToUnlockModal, { LockIcon } from "./VoteToUnlockModal";
 import { displayFont } from "@/lib/fonts";
@@ -136,13 +137,8 @@ export default function TeamPicker({
       <div className="w-full max-w-sm md:max-w-5xl lg:max-w-6xl mx-auto pb-10 pt-8 px-4 md:px-6 lg:px-8">
         {/* Header Section */}
         <div className="mb-8 md:mb-10">
-          <div
-            style={{
-              backgroundImage:
-                "linear-gradient(180deg, rgba(15, 22, 41, 0.8) 0%, rgba(8, 12, 24, 0.8) 100%)",
-            }}
-            className="pb-6 md:pb-8 -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 pt-6 md:pt-8 border-b border-amber-500/20"
-          >
+          <div className="relative pb-6 md:pb-8 pt-2 md:pt-4 border-b border-amber-500/20">
+            <ShareAppButton className="absolute top-2 md:top-4 right-0 z-10" />
             <h1
               className={`${displayFont.className} text-6xl md:text-7xl lg:text-8xl text-white uppercase leading-[0.95] tracking-tight mb-2 md:mb-3`}
             >
