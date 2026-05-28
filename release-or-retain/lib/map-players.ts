@@ -24,7 +24,7 @@ function mapRole(raw: ScrapedPlayer): PlayerRole {
 
   if (raw.role === "bowler") return "Bowler";
   if (raw.role === "all-rounder") return "All-rounder";
-  if (stumpings > 0) return "WK-Batsman";
+  if (raw.role === "wicketkeeper" || stumpings > 0) return "WK-Batsman";
   if (raw.role === "batter") return "Batsman";
   return "Batsman";
 }
