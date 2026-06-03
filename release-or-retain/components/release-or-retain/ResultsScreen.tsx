@@ -43,20 +43,12 @@ function communityLine(
 ): string | null {
   if (!stat || stat.total_votes === 0) return null;
 
-  const fansRetain = stat.retain_pct >= 50;
-  const agree =
-    (decision === "retain" && fansRetain) ||
-    (decision === "release" && !fansRetain);
+  const agreePct =
+    decision === "retain"
+      ? stat.retain_pct
+      : Math.round((100 - stat.retain_pct) * 10) / 10;
 
-  if (agree) {
-    return `${stat.retain_pct}% of fans agree`;
-  }
-
-  if (decision === "retain") {
-    return `Fans would release · ${stat.retain_pct}% retain`;
-  }
-
-  return `Fans would retain · ${stat.retain_pct}% retain`;
+  return `${agreePct}% agree`;
 }
 
 type ResultsTab = "retain" | "release";
