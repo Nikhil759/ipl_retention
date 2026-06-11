@@ -9,7 +9,7 @@ export default function EncoreWavAssociation() {
           href="https://www.encorewav.com/"
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center justify-center gap-2.5 py-2 md:py-2.5 hover:bg-white/[0.03] transition-colors rounded-sm -mx-1 px-1"
+          className="group flex items-center justify-center gap-3 py-3 md:gap-2.5 md:py-2.5 hover:bg-white/[0.03] transition-colors rounded-sm -mx-1 px-1"
         >
           <Image
             src="/logo_encore_trimmed.png"
@@ -17,13 +17,13 @@ export default function EncoreWavAssociation() {
             aria-hidden
             width={939}
             height={568}
-            sizes="52px"
+            sizes="(max-width: 768px) 40px, 32px"
             quality={100}
             priority
             unoptimized
-            className="h-7 md:h-8 w-auto object-contain flex-shrink-0 opacity-90 group-hover:opacity-100 transition-opacity"
+            className="h-9 md:h-8 w-auto object-contain flex-shrink-0 opacity-90 group-hover:opacity-100 transition-opacity"
           />
-          <p className="text-[11px] md:text-xs text-gray-400 leading-tight">
+          <p className="text-xs text-gray-400 leading-tight">
             In association with{" "}
             <span className="text-gray-200 font-medium group-hover:text-[#FFA500] transition-colors">
               Encore Wav
@@ -34,7 +34,7 @@ export default function EncoreWavAssociation() {
           </p>
           <span
             aria-hidden
-            className="text-[10px] text-gray-500 group-hover:text-[#FFA500]/80 transition-colors flex-shrink-0"
+            className="text-xs md:text-[10px] text-gray-500 group-hover:text-[#FFA500]/80 transition-colors flex-shrink-0"
           >
             ↗
           </span>
