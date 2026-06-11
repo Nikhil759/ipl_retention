@@ -156,7 +156,7 @@ export default function TeamPicker({
               IPL 2026 · YOUR PICKS
             </p>
             <p className="text-sm md:text-base text-gray-300 mt-4 md:mt-5 max-w-2xl leading-relaxed">
-              As IPL 2026 wraps up, help decide each team&apos;s future — swipe to
+              As IPL 2026 has wrapped up, help decide each team&apos;s future — swipe to
               release or retain players ahead of next season&apos;s auction.
             </p>
           </div>
