@@ -6,7 +6,7 @@ import AppBackground from "@/components/release-or-retain/AppBackground";
 import ConsensusRouteClient from "@/components/release-or-retain/ConsensusRouteClient";
 import { BackToTeamsLink, SubpageHeader } from "@/components/release-or-retain/SubpageHeader";
 import { possessiveLabel } from "@/lib/profile";
-import { isValidSessionId } from "@/lib/share";
+import { isLegacyShareParam, isValidShareToken } from "@/lib/share";
 import { TEAM_CODES, TEAM_NAMES } from "@/lib/team-config";
 
 const backLinkClassName =
@@ -19,12 +19,14 @@ interface PageProps {
 
 export default function TeamConsensusPage({ params, searchParams }: PageProps) {
   const { teamCode: rawCode } = use(params);
-  const { ref: refSessionId, name: rawName } = use(searchParams);
+  const { ref: refToken, name: rawName } = use(searchParams);
   const teamCode = rawCode.toUpperCase();
   const isValid = (TEAM_CODES as string[]).includes(teamCode);
   const teamName = TEAM_NAMES[teamCode];
 
-  const hasRef = !!refSessionId && isValidSessionId(refSessionId);
+  const hasRef =
+    !!refToken &&
+    (isValidShareToken(refToken) || isLegacyShareParam(refToken));
   const sharerName = rawName ? decodeURIComponent(rawName) : null;
   const backLabel = hasRef && sharerName
     ? `${possessiveLabel(sharerName)} picks`
@@ -32,7 +34,7 @@ export default function TeamConsensusPage({ params, searchParams }: PageProps) {
 
   const backLink = hasRef ? (
     <Link
-      href={`/release-or-retain/share/${teamCode}/${refSessionId}`}
+      href={`/release-or-retain/share/${teamCode}/${refToken}`}
       className={backLinkClassName}
     >
       <span aria-hidden>←</span>

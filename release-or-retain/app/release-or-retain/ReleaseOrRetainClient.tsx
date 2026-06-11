@@ -223,6 +223,7 @@ export default function ReleaseOrRetainClient() {
             <TeamPicker
               teamStatuses={teamStatuses}
               fanVoteCounts={fanVoteCounts}
+              sessionId={sessionIdRef.current || getOrCreateSessionId()}
               onSelect={handleTeamSelect}
               loading={loadingTeam}
             />

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import "./globals.css";
 import { displayFont } from "@/lib/fonts";
+import EncoreWavAssociation from "@/components/EncoreWavAssociation";
 import TrackVisit from "@/components/TrackVisit";
 import ScrollToTop from "@/components/ScrollToTop";
 
@@ -34,6 +35,7 @@ export default function RootLayout({
           <TrackVisit />
           <ScrollToTop />
         </Suspense>
+        <EncoreWavAssociation />
         {children}
       </body>
     </html>

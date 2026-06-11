@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 interface TeamPickerProps {
   teamStatuses: Record<string, TeamStatusInfo>;
   fanVoteCounts?: Record<string, number>;
+  sessionId?: string;
   onSelect: (teamCode: string) => void;
   loading?: boolean;
 }
@@ -116,6 +117,7 @@ function statusBadge(status: TeamStatusInfo["status"]) {
 export default function TeamPicker({
   teamStatuses,
   fanVoteCounts = {},
+  sessionId,
   onSelect,
   loading = false,
 }: TeamPickerProps) {
@@ -169,7 +171,7 @@ export default function TeamPicker({
             One vote per squad — swipe through each team&apos;s 2026 players once.
           </p>
 
-          <VotingProgress teamStatuses={teamStatuses} />
+          <VotingProgress teamStatuses={teamStatuses} sessionId={sessionId} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 md:gap-4">
             {TEAM_CODES.map((code, index) => {

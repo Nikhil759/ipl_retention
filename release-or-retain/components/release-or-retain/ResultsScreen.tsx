@@ -13,6 +13,7 @@ import {
   hasUnlockedConsensus,
 } from "@/lib/session";
 import PlayerPhoto from "./PlayerPhoto";
+import EncoreSuperFanPrize from "./EncoreSuperFanPrize";
 import ShareVerdictButton from "./ShareVerdictButton";
 import SuperFanBadge from "./SuperFanBadge";
 import LiveFanVoteLink from "./LiveFanVoteLink";
@@ -29,6 +30,7 @@ interface ResultsScreenProps {
   results: VoteResult[];
   teamCode: string;
   sessionId?: string;
+  shareToken?: string;
   onPickAnotherTeam?: () => void;
   viewer?: "owner" | "guest";
   sharerName?: string;
@@ -57,6 +59,7 @@ export default function ResultsScreen({
   results,
   teamCode,
   sessionId,
+  shareToken,
   onPickAnotherTeam,
   viewer = "owner",
   sharerName,
@@ -210,8 +213,11 @@ export default function ResultsScreen({
             : " players reviewed"}
         </p>
         {showSuperFan && (
-          <div className="mt-3 flex justify-center">
+          <div className="mt-3 flex flex-col items-center gap-3 w-full">
             <SuperFanBadge />
+            {!isGuest && sessionId && (
+              <EncoreSuperFanPrize sessionId={sessionId} className="w-full max-w-lg" />
+            )}
           </div>
         )}
         {!isGuest && sessionId && (
@@ -237,7 +243,7 @@ export default function ResultsScreen({
             </Link>
             {consensusUnlocked ? (
               <LiveFanVoteLink
-                href={`/release-or-retain/consensus/${teamCode}?ref=${sessionId ?? ""}&name=${encodeURIComponent(sharerName ?? "")}`}
+                href={`/release-or-retain/consensus/${teamCode}?ref=${shareToken ?? ""}&name=${encodeURIComponent(sharerName ?? "")}`}
                 fanVoteCount={fanVoteCount}
               />
             ) : (

@@ -1,60 +1,88 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
 import AppBackground from "@/components/release-or-retain/AppBackground";
 import ResultsScreen from "@/components/release-or-retain/ResultsScreen";
 import SuperFanBadge from "@/components/release-or-retain/SuperFanBadge";
 import { BackToTeamsLink, SubpageHeader } from "@/components/release-or-retain/SubpageHeader";
-import { getPlayersByTeam } from "@/lib/players";
 import { possessiveLabel } from "@/lib/profile";
-import { getSharedVerdict, isValidSessionId } from "@/lib/share";
+import {
+  getOrCreateShareToken,
+  getSharedVerdictBySession,
+  getSharedVerdictByToken,
+  isLegacyShareParam,
+  isValidShareToken,
+} from "@/lib/share";
 import { useScrollToTop } from "@/lib/use-scroll-to-top";
-import { checkSuperFan } from "@/lib/session";
 import { TEAM_CODES, TEAM_NAMES } from "@/lib/team-config";
 import { VoteResult } from "@/types/player";
 
-const SQUAD_SIZES = Object.fromEntries(
-  TEAM_CODES.map((code) => [code, getPlayersByTeam(code).length])
-);
-
 interface PageProps {
-  params: Promise<{ teamCode: string; sessionId: string }>;
+  params: Promise<{ teamCode: string; token: string }>;
 }
 
 export default function SharedVerdictRoute({ params }: PageProps) {
-  const { teamCode: rawTeam, sessionId } = use(params);
+  const router = useRouter();
+  const { teamCode: rawTeam, token } = use(params);
   const teamCode = rawTeam.toUpperCase();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [results, setResults] = useState<VoteResult[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [sharerSuperFan, setSharerSuperFan] = useState(false);
+  const [shareToken, setShareToken] = useState<string | null>(null);
 
   const teamName = TEAM_NAMES[teamCode];
   const isValidTeam = (TEAM_CODES as string[]).includes(teamCode);
 
   useEffect(() => {
-    if (!isValidSessionId(sessionId) || !isValidTeam) {
+    if (!isValidTeam) {
       setNotFound(true);
       setLoading(false);
       return;
     }
 
-    void Promise.all([
-      getSharedVerdict(sessionId, teamCode),
-      checkSuperFan(sessionId, TEAM_CODES as string[], SQUAD_SIZES),
-    ]).then(([data, superFan]) => {
-      setSharerSuperFan(superFan);
+    if (isLegacyShareParam(token)) {
+      void (async () => {
+        const data = await getSharedVerdictBySession(token, teamCode);
+        if (!data) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+
+        const newToken = await getOrCreateShareToken(token, teamCode);
+        if (newToken) {
+          router.replace(`/release-or-retain/share/${teamCode}/${newToken}`);
+          return;
+        }
+
+        setNotFound(true);
+        setLoading(false);
+      })();
+      return;
+    }
+
+    if (!isValidShareToken(token)) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+
+    void getSharedVerdictByToken(token, teamCode).then((data) => {
       if (!data) {
         setNotFound(true);
       } else {
         setResults(data.results);
         setDisplayName(data.displayName);
+        setSharerSuperFan(data.isSuperFan);
+        setShareToken(token);
       }
       setLoading(false);
     });
-  }, [sessionId, teamCode, isValidTeam]);
+  }, [token, teamCode, isValidTeam, router]);
 
   useScrollToTop(loading, notFound, results);
 
@@ -70,7 +98,7 @@ export default function SharedVerdictRoute({ params }: PageProps) {
     );
   }
 
-  if (notFound || !results || !displayName) {
+  if (notFound || !results || !displayName || !shareToken) {
     return (
       <main className="min-h-dvh flex flex-col items-center overflow-x-hidden bg-transparent">
         <AppBackground />
@@ -106,9 +134,10 @@ export default function SharedVerdictRoute({ params }: PageProps) {
         <ResultsScreen
           results={results}
           teamCode={teamCode}
-          sessionId={sessionId}
+          shareToken={shareToken}
           viewer="guest"
           sharerName={displayName}
+          showSuperFan={sharerSuperFan}
         />
       </div>
     </main>

@@ -1,7 +1,11 @@
 import { DEFAULT_DISPLAY_NAME, possessiveLabel } from "@/lib/profile";
 import { TEAM_NAMES } from "@/lib/team-config";
 import { computePurseSummary } from "@/lib/format-salary";
-import { getTeamVotes, votesToResults } from "@/lib/session";
+import {
+  getTeamVotes,
+  StoredVote,
+  votesToResults,
+} from "@/lib/session";
 import { createClient } from "@/lib/supabase/client";
 import { VoteResult } from "@/types/player";
 
@@ -13,15 +17,52 @@ export const APP_SHARE_TEAM_CODE = "app";
 export interface SharedVerdictData {
   results: VoteResult[];
   displayName: string;
+  isSuperFan: boolean;
 }
 
-export function buildVerdictShareUrl(sessionId: string, teamCode: string): string {
-  const origin =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : process.env.NEXT_PUBLIC_SITE_URL ?? "https://releaseorretain.live";
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-  return `${origin}/release-or-retain/share/${teamCode}/${sessionId}`;
+const SHARE_TOKEN_RE = /^[A-Za-z0-9]{8}$/;
+
+function shareOrigin(): string {
+  return typeof window !== "undefined"
+    ? window.location.origin
+    : process.env.NEXT_PUBLIC_SITE_URL ?? "https://releaseorretain.live";
+}
+
+export function isValidSessionId(sessionId: string): boolean {
+  return UUID_RE.test(sessionId);
+}
+
+export function isValidShareToken(token: string): boolean {
+  return SHARE_TOKEN_RE.test(token);
+}
+
+export function isLegacyShareParam(param: string): boolean {
+  return isValidSessionId(param);
+}
+
+export function buildVerdictShareUrl(token: string, teamCode: string): string {
+  return `${shareOrigin()}/release-or-retain/share/${teamCode}/${token}`;
+}
+
+export async function getOrCreateShareToken(
+  sessionId: string,
+  teamCode: string
+): Promise<string | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("get_or_create_share_token", {
+    p_session_id: sessionId,
+    p_team_code: teamCode,
+  });
+
+  if (error) {
+    console.error("Share token error:", error.message);
+    return null;
+  }
+
+  return typeof data === "string" ? data : null;
 }
 
 export function buildVerdictShareMessage(
@@ -41,13 +82,16 @@ export function buildVerdictShareMessage(
   return `${who} ${teamName} IPL 2026 picks: ${retained} retained, ${released} released · ${purse.freedDisplay} freed. See my squad and make your own picks.`;
 }
 
-export function buildVerdictSharePayload(
+export async function buildVerdictSharePayload(
   sessionId: string,
   teamCode: string,
   results: VoteResult[],
   displayName: string
-): { url: string; text: string; title: string } {
-  const url = buildVerdictShareUrl(sessionId, teamCode);
+): Promise<{ url: string; text: string; title: string } | null> {
+  const token = await getOrCreateShareToken(sessionId, teamCode);
+  if (!token) return null;
+
+  const url = buildVerdictShareUrl(token, teamCode);
   const text = buildVerdictShareMessage(teamCode, results, displayName);
   const teamName = TEAM_NAMES[teamCode] ?? teamCode;
   const title = `${possessiveLabel(displayName)} ${teamName} picks · Release or Retain`;
@@ -60,16 +104,17 @@ export async function copyVerdictLink(
   results: VoteResult[],
   displayName: string
 ): Promise<boolean> {
-  const { url, text } = buildVerdictSharePayload(
+  const payload = await buildVerdictSharePayload(
     sessionId,
     teamCode,
     results,
     displayName
   );
+  if (!payload) return false;
 
   try {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
-      await navigator.clipboard.writeText(`${text}\n${url}`);
+      await navigator.clipboard.writeText(`${payload.text}\n${payload.url}`);
       return true;
     }
     return false;
@@ -79,12 +124,7 @@ export async function copyVerdictLink(
 }
 
 export function buildAppShareUrl(): string {
-  const origin =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : process.env.NEXT_PUBLIC_SITE_URL ?? "https://releaseorretain.live";
-
-  return origin.replace(/\/$/, "");
+  return shareOrigin().replace(/\/$/, "");
 }
 
 export function buildAppShareMessage(): string {
@@ -125,12 +165,15 @@ export async function shareVerdict(
   results: VoteResult[],
   displayName: string
 ): Promise<ShareOutcome> {
-  const { url, text, title } = buildVerdictSharePayload(
+  const payload = await buildVerdictSharePayload(
     sessionId,
     teamCode,
     results,
     displayName
   );
+  if (!payload) return "error";
+
+  const { url, text, title } = payload;
 
   try {
     if (typeof navigator !== "undefined" && navigator.share) {
@@ -150,7 +193,45 @@ export async function shareVerdict(
   }
 }
 
-export async function getSharedVerdict(
+interface RpcSharedVerdict {
+  display_name: string;
+  votes: StoredVote[];
+  is_super_fan: boolean;
+}
+
+export async function getSharedVerdictByToken(
+  token: string,
+  teamCode: string
+): Promise<SharedVerdictData | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("get_shared_verdict", {
+    p_token: token,
+    p_team_code: teamCode,
+  });
+
+  if (error) {
+    console.error("Shared verdict error:", error.message);
+    return null;
+  }
+
+  if (!data || typeof data !== "object") return null;
+
+  const payload = data as RpcSharedVerdict;
+  const votes = Array.isArray(payload.votes) ? payload.votes : [];
+  if (votes.length === 0) return null;
+
+  const results = votesToResults(votes, teamCode);
+  if (results.length === 0) return null;
+
+  return {
+    results,
+    displayName: payload.display_name ?? DEFAULT_DISPLAY_NAME,
+    isSuperFan: Boolean(payload.is_super_fan),
+  };
+}
+
+/** Legacy loader for old UUID share links — used only to redirect to token URLs. */
+export async function getSharedVerdictBySession(
   sessionId: string,
   teamCode: string
 ): Promise<SharedVerdictData | null> {
@@ -170,12 +251,9 @@ export async function getSharedVerdict(
       .maybeSingle(),
   ]);
 
-  if (sessionResult.error) {
-    console.error("Shared verdict session error:", sessionResult.error.message);
+  if (sessionResult.error || !sessionResult.data?.completed_at) {
     return null;
   }
-
-  if (!sessionResult.data?.completed_at) return null;
 
   const votes = await getTeamVotes(sessionId, teamCode);
   if (votes.length === 0) return null;
@@ -184,12 +262,9 @@ export async function getSharedVerdict(
   const displayName =
     profileResult.data?.display_name ?? DEFAULT_DISPLAY_NAME;
 
-  return { results, displayName };
-}
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-export function isValidSessionId(sessionId: string): boolean {
-  return UUID_RE.test(sessionId);
+  return {
+    results,
+    displayName,
+    isSuperFan: false,
+  };
 }
