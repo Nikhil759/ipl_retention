@@ -4,13 +4,17 @@ import Link from "next/link";
 import { use } from "react";
 import AppBackground from "@/components/release-or-retain/AppBackground";
 import ConsensusRouteClient from "@/components/release-or-retain/ConsensusRouteClient";
-import { BackToTeamsLink, SubpageHeader } from "@/components/release-or-retain/SubpageHeader";
+import {
+  BackToTeamsLink,
+  subpageBackClassName,
+  SubpageHeader,
+} from "@/components/release-or-retain/SubpageHeader";
 import { possessiveLabel } from "@/lib/profile";
 import { isLegacyShareParam, isValidShareToken } from "@/lib/share";
 import { TEAM_CODES, TEAM_NAMES } from "@/lib/team-config";
-
-const backLinkClassName =
-  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/15 bg-white/5 text-xs font-medium text-gray-300 hover:bg-white/10 hover:text-white hover:border-white/25 transition-colors touch-manipulation";
+import { faChevronLeft } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import "@/lib/fontawesome";
 
 interface PageProps {
   params: Promise<{ teamCode: string }>;
@@ -35,9 +39,9 @@ export default function TeamConsensusPage({ params, searchParams }: PageProps) {
   const backLink = hasRef ? (
     <Link
       href={`/release-or-retain/share/${teamCode}/${refToken}`}
-      className={backLinkClassName}
+      className={subpageBackClassName}
     >
-      <span aria-hidden>←</span>
+      <FontAwesomeIcon icon={faChevronLeft} className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
       {backLabel ?? "Back to picks"}
     </Link>
   ) : (
