@@ -17,6 +17,7 @@ export interface DashboardStats {
   completedSquadVotes: number;
   distinctVoters: number;
   superFans: number;
+  superFanCouponClaims: number;
   totalShares: number;
   sharesNative: number;
   sharesCopy: number;
@@ -31,6 +32,7 @@ interface RawDashboardStats {
   completed_squad_votes: number;
   distinct_voters: number;
   super_fans: number;
+  super_fan_coupon_claims: number;
   total_shares: number;
   shares_native: number;
   shares_copy: number;
@@ -54,6 +56,7 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
     completedSquadVotes: raw.completed_squad_votes ?? 0,
     distinctVoters: raw.distinct_voters ?? 0,
     superFans: raw.super_fans ?? 0,
+    superFanCouponClaims: raw.super_fan_coupon_claims ?? 0,
     totalShares: raw.total_shares ?? 0,
     sharesNative: raw.shares_native ?? 0,
     sharesCopy: raw.shares_copy ?? 0,

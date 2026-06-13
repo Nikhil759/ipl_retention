@@ -135,7 +135,7 @@ export default async function AdminDashboardPage() {
               <StatCard
                 label="Super fans"
                 value={stats.superFans}
-                hint="Completed all 10 squads"
+                hint={`Completed all 10 squads · ${stats.superFanCouponClaims.toLocaleString()} claimed Encore coupon`}
               />
               <StatCard
                 label="Total shares"
