@@ -320,16 +320,19 @@ export default function TeamPicker({
           </div>
 
           <div className="mt-12 md:mt-16 pt-8 md:pt-10 border-t border-white/10">
-            <h2 className="flex items-center gap-2.5 text-2xl md:text-3xl font-bold tracking-tight mb-6 md:mb-8">
+            <h2 className="flex items-center gap-2.5 text-2xl md:text-3xl font-bold tracking-tight mb-2">
               <FontAwesomeIcon
                 icon={faFire}
                 className="h-6 w-6 md:h-7 md:w-7 text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]"
                 aria-hidden
               />
               <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent">
-                The most heated debates
+                Most heated debates
               </span>
             </h2>
+            <p className="text-sm md:text-base text-gray-400 mb-6 md:mb-8 max-w-2xl">
+              See where the crowd lands on cricket&apos;s biggest retention calls.
+            </p>
 
             <HeatedDebatesSection
               teamStatuses={teamStatuses}
