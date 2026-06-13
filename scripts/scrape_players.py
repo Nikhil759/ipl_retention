@@ -39,6 +39,11 @@ TEAMS: dict[str, str] = {
     "SRH": "sunrisers-hyderabad",
 }
 
+# Known misclassifications from stats (e.g. tail-end batting runs).
+ROLE_OVERRIDES: dict[str, str] = {
+    "3840": "bowler",  # Mohammed Siraj
+}
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 IMAGES_DIR = DATA_DIR / "images"
@@ -327,6 +332,7 @@ def scrape_player(
         or slug_to_name(slug)
     )
     role = resolve_role(batting, bowling, profile_role)
+    role = ROLE_OVERRIDES.get(client_id, role)
     stats_2026 = build_stats_block(batting, bowling) if has_2026_stats else None
 
     image_local: str | None = None
@@ -423,16 +429,54 @@ def merge_retention_additions(
     return players
 
 
+def preserve_image_fields(
+    player: dict[str, Any],
+    existing: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Keep headshot metadata when re-scraping stats with --no-images."""
+    if player.get("image_downloaded"):
+        return player
+
+    if existing and existing.get("image_downloaded"):
+        for field in (
+            "player_id",
+            "image_url",
+            "image_local",
+            "image_downloaded",
+            "image_valid",
+        ):
+            if existing.get(field) is not None:
+                player[field] = existing[field]
+        return player
+
+    image_path = IMAGES_DIR / f"{player['client_player_id']}.png"
+    if image_path.exists():
+        player["image_downloaded"] = True
+        player["image_local"] = str(image_path.relative_to(ROOT))
+    return player
+
+
 def merge_team_payload(
     existing: dict[str, Any], fresh: dict[str, Any], team_codes: list[str]
 ) -> dict[str, Any]:
     allowed = set(team_codes)
+    existing_by_key = {
+        (player["team_code"], player["client_player_id"]): player
+        for player in existing.get("players", [])
+        if player.get("team_code") in allowed
+    }
     kept = [
         player
         for player in existing.get("players", [])
         if player.get("team_code") not in allowed
     ]
-    merged_players = kept + fresh["players"]
+    merged_players = kept + [
+        preserve_image_fields(
+            player,
+            existing_by_key.get((player["team_code"], player["client_player_id"])),
+        )
+        for player in fresh["players"]
+    ]
     return {
         **fresh,
         "players": merged_players,
