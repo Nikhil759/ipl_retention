@@ -28,6 +28,26 @@ export function consensusDecision(retainPct: number): "retain" | "release" {
   return retainPct >= 50 ? "retain" : "release";
 }
 
+function mapPlayerCommunityStat(row: {
+  player_id: number;
+  team_code: string;
+  retain_count?: number | null;
+  release_count?: number | null;
+  total_votes?: number | null;
+  retain_pct?: number | null;
+}): PlayerCommunityStat {
+  const retainPct = row.retain_pct ?? 0;
+  return {
+    player_id: row.player_id,
+    team_code: row.team_code,
+    retain_count: row.retain_count ?? 0,
+    release_count: row.release_count ?? 0,
+    total_votes: row.total_votes ?? 0,
+    retain_pct: retainPct,
+    release_pct: Math.round((100 - retainPct) * 10) / 10,
+  };
+}
+
 /** Completed fans who voted on this squad (max per-player vote count). */
 export function getTeamFanVoteCount(
   statsByPlayerId: Record<number, { total_votes: number }>
@@ -89,18 +109,30 @@ export async function getTeamCommunityStats(
     return [];
   }
 
-  return (data ?? []).map((row) => {
-    const retainPct = row.retain_pct ?? 0;
-    return {
-      player_id: row.player_id,
-      team_code: row.team_code,
-      retain_count: row.retain_count ?? 0,
-      release_count: row.release_count ?? 0,
-      total_votes: row.total_votes ?? 0,
-      retain_pct: retainPct,
-      release_pct: Math.round((100 - retainPct) * 10) / 10,
-    };
-  });
+  return (data ?? []).map((row) => mapPlayerCommunityStat(row));
+}
+
+export async function getPlayerCommunityStatsByIds(
+  playerIds: number[]
+): Promise<Record<number, PlayerCommunityStat>> {
+  if (playerIds.length === 0) return {};
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("player_vote_summary")
+    .select(
+      "player_id, team_code, retain_count, release_count, total_votes, retain_pct"
+    )
+    .in("player_id", playerIds);
+
+  if (error) {
+    console.error("Player community stats by ids error:", error.message);
+    return {};
+  }
+
+  return Object.fromEntries(
+    (data ?? []).map((row) => [row.player_id, mapPlayerCommunityStat(row)])
+  );
 }
 
 export function buildConsensusResults(

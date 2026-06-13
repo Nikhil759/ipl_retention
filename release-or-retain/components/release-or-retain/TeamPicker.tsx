@@ -9,7 +9,11 @@ import AppBackground from "./AppBackground";
 import ShareAppButton from "./ShareAppButton";
 import VotingProgress from "./VotingProgress";
 import VoteToUnlockModal, { LockIcon } from "./VoteToUnlockModal";
+import HeatedDebatesSection from "./HeatedDebatesSection";
 import { displayFont } from "@/lib/fonts";
+import { faFire } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import "@/lib/fontawesome";
 import { useEffect, useState } from "react";
 
 interface TeamPickerProps {
@@ -313,6 +317,24 @@ export default function TeamPicker({
                 );
               })}
             </div>
+          </div>
+
+          <div className="mt-12 md:mt-16 pt-8 md:pt-10 border-t border-white/10">
+            <h2 className="flex items-center gap-2.5 text-2xl md:text-3xl font-bold tracking-tight mb-6 md:mb-8">
+              <FontAwesomeIcon
+                icon={faFire}
+                className="h-6 w-6 md:h-7 md:w-7 text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]"
+                aria-hidden
+              />
+              <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent">
+                The most heated debates
+              </span>
+            </h2>
+
+            <HeatedDebatesSection
+              teamStatuses={teamStatuses}
+              onLockedTeam={setLockedTeamModal}
+            />
           </div>
         </div>
       </div>

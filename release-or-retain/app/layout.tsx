@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { displayFont } from "@/lib/fonts";
 import EncoreWavAssociation from "@/components/EncoreWavAssociation";
+import SiteFooter from "@/components/SiteFooter";
 import TrackVisit from "@/components/TrackVisit";
 import ScrollToTop from "@/components/ScrollToTop";
 
@@ -30,13 +31,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={displayFont.variable} style={{ backgroundColor: "#080C18" }}>
-      <body className="overflow-x-hidden bg-transparent">
+      <body className="flex min-h-dvh flex-col overflow-x-hidden bg-transparent">
         <Suspense fallback={null}>
           <TrackVisit />
           <ScrollToTop />
         </Suspense>
         <EncoreWavAssociation />
-        {children}
+        <div className="flex flex-1 flex-col">{children}</div>
+        <SiteFooter />
       </body>
     </html>
   );
